@@ -1,0 +1,5 @@
+region,start_utc,end_utc,kind,source
+# Secondary label: operator stress notices, one row per notice window (times in UTC).
+# kind: EEA1/EEA2/EEA3, Watch, Advisory, ConservationAppeal (ERCOT); MaxGenAlert/MaxGenWarning/MaxGenEvent, HotWeatherAlert, ColdWeatherAlert, ConservativeOps (MISO)
+# source: notice ID or URL (ERCOT market notices / ops messages; MISO real-time notifications). Two team members check each row.
+# ERCOT,2023-09-06 23:00,2023-09-07 02:00,EEA2,https://www.ercot.com/...

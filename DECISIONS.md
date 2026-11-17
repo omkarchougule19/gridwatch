@@ -168,3 +168,8 @@ Citations were written from memory. **Check the exact titles and report IDs befo
 - Chronos notebook on Colab (zero-shot first).
 - Build the curated `alerts.csv` and `test_events.csv` (two reviewers per row).
 - Possible further ablations: label (price vs alert), issue time, price threshold, and the price-at-issue features (`--drop rt_price da_price`).
+
+### 16. Small decisions (2026-11-17, evening)
+- **Azure removed:** the proposal mentions an Azure pipeline, but the ingest pulls directly from the public sources and saves them locally. The Azure settings were dropped from `.env.example`, and `.env` holds only `EIA_API_KEY`.
+- **MISO ingest starts 2023-01-01:** MISO price files only start then, and hours without a price are masked anyway, so earlier load and weather for MISO would go unused.
+- Added the `data/external/alerts.csv` template (format and allowed `kind` values).
