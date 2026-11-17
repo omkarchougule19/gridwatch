@@ -15,7 +15,7 @@ The full log of decisions and findings is in [DECISIONS.md](DECISIONS.md). Appen
 
 ## Resume here
 1. **Check the ERCOT price chunks:** `data/interim/chunks/ERCOT_*.parquet` should have 6 files (2021–2026). If any are missing, rerun the ones missing, one at a time:
-   `.venv\Scripts\python -I <scratchpad>\fetch_chunk.py ERCOT 2022-01-01 2022-12-31 data/interim/chunks`
+   `.venv\Scripts\python -I scripts\download\fetch_chunk.py ERCOT 2025-01-01 2025-12-31 data/interim/chunks`
    Helpers are in `scripts/download/` (chunk list: `chunks.txt`; live view: `progress.py data/interim/chunks scripts/download/chunks.txt`).
 2. `python scripts/download/assemble.py` to assemble and build `data/processed/ERCOT.parquet`, then run `python scripts/count_events.py`. Decide whether ERCOT stays at $1,000 or moves to a percentile.
 3. Train all models (`scripts/train.py --model <name>` for rule, logreg, random_forest, xgboost, mlp, knn, naive_bayes) and run `scripts/evaluate.py --models rule ...`.
