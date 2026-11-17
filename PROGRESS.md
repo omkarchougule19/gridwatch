@@ -1,4 +1,4 @@
-# Progress (updated 2026-11-17, 13:20)
+# Progress (paused 2026-11-17, 13:28)
 
 The full log of decisions and findings is in [DECISIONS.md](DECISIONS.md). Append to it each session.
 **Final project due Sun Dec 13, 11:59pm. It cannot be late.**
@@ -11,15 +11,15 @@ The full log of decisions and findings is in [DECISIONS.md](DECISIONS.md). Appen
 - **Chronos-2 Colab notebook** (`notebooks/chronos_colab.ipynb`): zero-shot and fine-tuned. Not yet run on a GPU.
 - **Real data:**
   - **MISO is complete** (`data/processed/MISO.parquet`, 2023-01 → 2026-10). Threshold set to the train 99th percentile, $111/MWh.
-  - **ERCOT** load and weather are cached. **Prices were downloading one year at a time** (parallel downloads failed).
+  - **ERCOT is complete** (`data/processed/ERCOT.parquet`, 2021-04 → 2026-10). Threshold set to the train 99th percentile, $329/MWh.
+  - Event counts at p99, train / val / test: MISO 101 / 89 / 184, ERCOT 105 / 11 / 11 (DECISIONS.md §18–19).
 
 ## Resume here
-1. **Check the ERCOT price chunks:** `data/interim/chunks/ERCOT_*.parquet` should have 6 files (2021–2026). If any are missing, rerun the ones missing, one at a time:
-   `.venv\Scripts\python -I scripts\download\fetch_chunk.py ERCOT 2025-01-01 2025-12-31 data/interim/chunks`
-   Helpers are in `scripts/download/` (chunk list: `chunks.txt`; live view: `progress.py data/interim/chunks scripts/download/chunks.txt`).
-2. `python scripts/download/assemble.py` to assemble and build `data/processed/ERCOT.parquet`, then run `python scripts/count_events.py`. Decide whether ERCOT stays at $1,000 or moves to a percentile.
-3. Train all models (`scripts/train.py --model <name>` for rule, logreg, random_forest, xgboost, mlp, knn, naive_bayes) and run `scripts/evaluate.py --models rule ...`.
-4. Ablations: `--drop temp_ cdd hdd`, `--drop rt_price da_price`, `--drop load_fcst`, and `--label secondary` once alerts.csv exists.
-5. Chronos on Colab (zero-shot, then fine-tuned). Copy `models/chronos-*.pkl` back and include them in `evaluate.py`.
-6. Curate `data/external/alerts.csv` and `test_events.csv` (two reviewers per row).
-7. Report and 5–6 min video (no AI-generated video or slides). Include group contributions and the code link.
+1. **Team decision:** ERCOT has only about 11 val/test events. Add regions (SPP/PJM via gridstatus), lower ERCOT to p98, or pool regions? (DECISIONS.md §19)
+2. Train all models: `python scripts/train.py --model <name>` for rule, logreg, random_forest, xgboost, mlp, knn, naive_bayes. Then `python scripts/evaluate.py --models rule logreg random_forest xgboost mlp knn naive_bayes`.
+3. Ablations: `--drop temp_ cdd hdd`, `--drop rt_price da_price`, `--drop load_fcst`, and `--label secondary` once alerts.csv exists.
+4. Chronos on Colab (zero-shot, then fine-tuned). Copy `models/chronos-*.pkl` back and include them in `evaluate.py`.
+5. Curate `data/external/alerts.csv` and `test_events.csv` (two reviewers per row).
+6. Report and 5–6 min video (no AI-generated video or slides). Include group contributions and the code link.
+
+Re-downloading data on a new machine: `scripts/download/` (chunked, with retries; ERCOT years must run one at a time). Then `python scripts/download/assemble.py`.
