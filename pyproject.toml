@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gridwatch"
+version = "0.1.0"
+description = "24-hour early warning for power grid stress and price spikes (CS 441)"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "pandas",
+    "pyarrow",
+    "scikit-learn",
+    "xgboost",
+    "pyyaml",
+    "requests",
+    "python-dotenv",
+    "matplotlib",
+    "gridstatus",
+    "holidays",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "jupyter"]
+chronos = ["torch", "chronos-forecasting"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

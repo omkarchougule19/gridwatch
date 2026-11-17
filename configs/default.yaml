@@ -1,0 +1,67 @@
+regions: [ERCOT, MISO]
+
+paths:
+  interim: data/interim
+  processed: data/processed
+  external: data/external
+  models: models
+  reports: reports
+
+# Data sources (see src/gridwatch/data/ingest.py). Coverage checked 2026-11-17:
+#   GFS day-ahead temperature from ~2021-04 (occasional gaps); MISO daily price files from ~2023-01.
+sources:
+  weather_model: gfs_seamless
+  ERCOT:
+    hub: HB_HUBAVG
+    cities: {houston: [29.76, -95.37], dallas: [32.78, -96.80], san_antonio: [29.42, -98.49], austin: [30.27, -97.74]}
+  MISO:
+    hub: ILLINOIS.HUB
+    cities: {chicago: [41.88, -87.63], minneapolis: [44.98, -93.27], detroit: [42.33, -83.05], st_louis: [38.63, -90.20], new_orleans: [29.95, -90.07]}
+
+# Forecast run: issued once a day at this local hour; predicts the next calendar day (24 hours).
+issue:
+  hour_local: 14
+  horizon_hours: 24
+  timezone:
+    ERCOT: America/Chicago
+    MISO: America/Chicago
+
+label:
+  primary: price            # TA: price threshold is the primary label
+  secondary: alert          # operator alerts reported as a second label
+  price_threshold_usd: 1000 # absolute spike threshold
+  price_percentile: null    # e.g. 0.99 -> threshold computed on the TRAIN split only
+  event_merge_gap_hours: 6  # stress hours closer than this belong to one event
+
+splits:                     # inclusive date ranges, local dates
+  train: ["2019-01-01", "2024-06-30"]
+  val:   ["2024-07-01", "2025-06-30"]
+  test:  ["2025-07-01", "2026-10-31"]
+  curated_test_windows: data/external/test_events.csv
+
+features:
+  lags_hours: [48, 72, 168]       # >= max lead time from issue to target, so no leakage
+  rolling_windows_hours: [24, 168]
+
+models:
+  rule:
+    temp_hot_f: 100
+    temp_cold_f: 15
+    load_quantile: 0.95
+  xgboost:
+    n_estimators: 600
+    max_depth: 6
+    learning_rate: 0.05
+    subsample: 0.8
+    colsample_bytree: 0.8
+    early_stopping_rounds: 50
+    scale_pos_weight: auto   # neg/pos ratio on train
+  chronos:
+    model_id: amazon/chronos-bolt-small
+    context_hours: 512
+    target: rt_price
+    quantile_levels: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+
+evaluation:
+  alert_threshold: tune_on_val   # or a float
+  min_recall: 0.7                # threshold chosen to hit this recall on val

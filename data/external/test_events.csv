@@ -1,0 +1,3 @@
+region,start_local,end_local,kind,source,checked_by
+# Curated extreme-weather test windows (mid-2025 to 2026). Fill in from operator notices; two reviewers per row.
+# ERCOT,2025-08-10 00:00,2025-08-13 23:00,heat_wave,ERCOT notice ID ...,"Name1;Name2"

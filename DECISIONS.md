@@ -1,0 +1,109 @@
+# Decisions and findings log
+
+A running record of what was decided and why, and what was found. Newest session first.
+Status and next steps are in [PROGRESS.md](PROGRESS.md).
+
+---
+
+## Session 1: 2026-11-17
+
+### 1. Inputs reviewed
+- **The proposal and TA feedback** (course feedback page, not stored in the repo).
+  - **Task:** for each hour of the next 24, give P(the ERCOT/MISO grid is stressed).
+  - **Models:** a rule baseline, XGBoost, and Chronos (zero-shot and fine-tuned).
+  - **Metrics:** PR-AUC (main metric), precision and recall at a threshold, event-level recall, Brier score.
+  - **Targets:** 70–80% recall at 40–50% or better precision.
+- **The syllabus** (cs441_aml_syllabus.pdf, Hoiem). It covers policy only, with no list of topics. The course site pages (`/CS441/fa2026/`) returned 404, probably because they need a login. What matters for the project:
+  - The final project (200 pts) has to define a custom problem, collect data for training and evaluation, compare models, and report results. Graded checkpoints come along the way.
+  - **Academic integrity:** no code from the Internet unless the instructor approves it. AI use is allowed. We therefore call library APIs and don't copy snippets.
+  - Compute: Colab, or Illinois Computes (A100) for deep models such as Chronos fine-tuning.
+  - Textbook: Forsyth, *Applied Machine Learning* (2019).
+
+### 2. TA feedback → how it's handled
+| TA point | Decision | Where |
+|---|---|---|
+| Use weather forecasts as issued, not observed weather | Use only forecasts issued the day before (GFS `previous_day1`). Never use ERA5 or ISD as features | `data/ingest.py: weather_forecasts`, `data/load.py: asof_forecasts` |
+| Price threshold as the primary label, alerts as the secondary | `label.primary: price`, `label.secondary: alert`. Pick one with `--label` | `labels.py`, `configs/default.yaml` |
+| Balanced curated test set inflates precision | Report both the continuous test period and the curated windows | `scripts/evaluate.py` |
+| Count events before fixing the test window; add regions if scarce | `scripts/count_events.py` | |
+| Chronos fine-tuning needs a GPU | Fine-tune on Colab or Illinois Computes. Zero-shot runs locally | `models/chronos_model.py` |
+
+### 3. Design decisions (scaffold)
+- **Issue time:** a forecast is made once a day at **14:00 local (America/Chicago) on day D-1**, covering all 24 hours of day D. Lead times run from 10 to 33 hours.
+- **Leak-safe features:**
+  - Lags of at least 48h (more than the longest lead).
+  - Rolling stats shifted by 48h.
+  - Values at the issue time (the last observation at or before 14:00 D-1).
+  - Calendar features of the target hour.
+  - Weather forecasts only as issued.
+  - These are enforced by `tests/test_core.py::test_features_have_no_future_leakage`.
+- **Price threshold:**
+  - An absolute $1,000/MWh by default.
+  - If `price_percentile` is set, the threshold is computed on the **train split only**.
+  - MISO prices rarely reach $1,000, so MISO will probably need a percentile.
+- **Events:** stress hours less than 6h apart are merged into one event (`event_merge_gap_hours`).
+- **Event-level recall:** an event counts as caught if some alert with p ≥ threshold was **issued in [start-24h, start)** and targets an hour inside the event. False alarms are also reported as alert episodes with no stress hour, per week.
+- **Alert threshold:** tuned on **val**. It is the highest threshold that still gives recall ≥ 0.7 (`evaluation.min_recall`).
+- **Splits:** time-based, inclusive local dates. Train ends 2024-06-30, val runs 2024-07-01 → 2025-06-30, test runs 2025-07-01 → 2026-10-31. Disjointness is asserted.
+- **Rule baseline:** alert when the forecast temperature is ≥100°F or ≤15°F AND load is at or above its train 95th percentile. It currently uses `load_mw_lag48` as a stand-in for the load forecast. The plan is to switch to EIA's `load_fcst_mw`.
+- **XGBoost:** `scale_pos_weight = neg/pos` on train, `eval_metric=aucpr`, early stopping on val. Calibration (isotonic) is a TODO before reporting the Brier score.
+- **Chronos:** forecast price quantiles, then P(price ≥ threshold) by interpolating the quantile CDF (0 above the top quantile, 1 below the bottom). The tails are coarse, so consider adding 0.95 and 0.99 quantiles.
+- **Environment:** `.venv` with Python 3.13, set up with `pip install -e ".[dev]"`. Chronos and torch are an optional extra: `[chronos]`.
+
+### 4. Bugs found and fixed
+- `features.at_issue_features`: `reindex(..., method="ffill")` on tz-aware duplicate timestamps raised a TypeError. It was replaced with a `searchsorted` lookup.
+- Deprecated pandas accessors `dayofweek`/`dayofyear` were changed to `day_of_week`/`day_of_year` (Pandas4Warning).
+
+### 5. Smoke test (synthetic data, kept in the scratchpad, not in the project)
+- The pipeline ran end to end: count_events → train (rule, xgboost) → evaluate.
+- With a base rate of about 0.4%, XGBoost scored val PR-AUC of about 0.45 and event recall of about 0.73–0.80, and test PR-AUC of about 0.34–0.37. These numbers only show that the plumbing works. They say nothing about real performance.
+- The curated view was skipped because `test_events.csv` is empty. Expected.
+
+### 6. Data sources (preferred, citable)
+| Data | Source | Access |
+|---|---|---|
+| Hourly load and BA day-ahead load forecast | U.S. EIA, Hourly Electric Grid Monitor (Form EIA-930), API v2 `electricity/rto/region-data` (ERCO, MISO) | `gridstatus.EIA`. Needs a free `EIA_API_KEY` |
+| ERCOT prices | ERCOT MIS: Historical RTM SPP (15-min, hourly mean) and DAM SPP, hub **HB_HUBAVG** | `gridstatus.Ercot.get_rtm_spp/get_dam_spp(year)` |
+| MISO prices | MISO Market Reports: RT final ex-post hourly LMP and DA ex-post hourly LMP, **ILLINOIS.HUB** | `gridstatus.MISO.get_lmp_real_time_hourly_final/get_lmp_day_ahead_hourly` |
+| Weather forecasts as issued | NOAA GFS (`gfs_seamless`), the run issued the day before, from the archive at the Open-Meteo Previous Runs API | `requests`. Averaged, plus max and min, over load-center cities |
+| Operator alerts | Hand-curated `data/external/alerts.csv` from ERCOT ops messages/notices (EEA, Watch, Advisory, conservation appeals) and MISO RT notifications (Hot/Cold Weather Alerts, Max Gen, Conservative Ops) | manual |
+| Event context (for the report) | FERC–NERC Feb 2021 cold weather report (Uri); FERC–NERC Winter Storm Elliott inquiry (2023); NERC seasonal reliability assessments | cite |
+| Methods | Chen & Guestrin 2016 (XGBoost); Ansari et al. 2024 TMLR (Chronos); Weron 2014 IJF; Lago et al. 2021 Applied Energy; Saito & Rehmsmeier 2015 PLoS ONE (PR vs ROC); Brier 1950 | cite |
+| Optional backup for weather | NOAA NBM/NDFD archives (NCEI, AWS), via `Herbie`. This is the rigorous route if earlier years are needed | not used yet |
+
+Citations were written from memory. **Check the exact titles and report IDs before citing them.**
+
+### 7. Data coverage findings (probed 2026-11-17)
+- **Open-Meteo Previous Runs, `temperature_2m_previous_day1`:**
+  - null for 2019-07-01, 2021-01-01, 2021-03-01, 2021-03-20.
+  - values present from **2021-04-01** onward (2022, 2023, 2025, 2026 all checked).
+  - **a gap on 2024-01-01** (null for both the default model and `gfs_seamless`). Expect scattered gaps.
+- **`apparent_temperature` / `wind_speed_10m` `_previous_day1`:** null until at least 2023-06 and present from 2024-08. **Decision: drop heat index and wind** and use only temperature (mean, max and min across cities).
+- **MISO daily price files** (`docs.misoenergy.org/marketreports/YYYYMMDD_rt_lmp_final.csv`): 404 for 2021-08 to 2022-11 and 200 from **2023-01-01** onward. The annual zip names tried also returned 404. **MISO training data starts in 2023.**
+- **ERCOT RTM/DAM SPP:** annual files from 2011, so there's no constraint.
+- **ERCOT operations messages (gridstatus):** historical pulls come from **Wayback Machine snapshots** (only 2 snapshots for Jul–Sep 2023), so they're incomplete. **Decision: alerts come from the curated CSV** rather than this endpoint.
+- **gridstatus 0.37.0:** the class is `Ercot`, not `ERCOT`. MISO hubs available include ARKANSAS, ILLINOIS, INDIANA, LOUISIANA, MICHIGAN, MINN, MS, TEXAS.
+
+### 8. Resulting data decisions
+- **Training start moves from 2019 to 2021-04-01** because of the forecast coverage. This loses Winter Storm Uri (Feb 2021) as a training event; it can still be used as context in the write-up. *(Not yet changed in the config. See PROGRESS step 1.)*
+- MISO trains on 2023-01 → 2024-06 only (one summer). It will probably need a percentile threshold, or more regions/hubs.
+- Each raw pull is saved in `data/interim/` so it isn't downloaded twice.
+
+### 9. Working preferences (from the user)
+- A **"lazy" coding style**: reuse libraries such as sklearn, gridstatus and pandas, keep the code modular, and **write new code only when nothing existing can be reused**.
+- Align the models and the train/val/test methods with what CS441 teaches.
+- **Planned comparison set:**
+  - rule baseline
+  - logistic regression
+  - random forest
+  - XGBoost
+  - MLP
+  - Chronos (zero-shot and fine-tuned)
+
+  These will be built through one config-driven sklearn pipeline factory, with hyperparameters chosen by TimeSeriesSplit CV (`average_precision`) and optional calibration.
+
+### 10. Open questions
+- Can we get the actual CS441 lecture schedule (it needs a login) to confirm which models and methods to emphasize?
+- Should we add regions (e.g. SPP, PJM via gridstatus) if the 2025–26 event counts are small?
+- Should we use NOAA NBM/NDFD archives to recover 2019–2021 training data (and Uri)?
+- Should we put the folder under git?
