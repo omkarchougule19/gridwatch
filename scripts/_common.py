@@ -17,7 +17,7 @@ def prepare(region: str, cfg: dict) -> dict:
     # (e.g. MISO before ~2023 has no prices).
     has_price = df["rt_price"].notna()
     masks = {k: v & has_price for k, v in time_split(df.index, cfg["splits"], tz).items()}
-    lab = cfg["label"]
+    lab = {**cfg["label"], **cfg["label"].get("regions", {}).get(region, {})}
     thr = price_threshold(df.loc[masks["train"], "rt_price"], lab["price_threshold_usd"], lab["price_percentile"])
     y = make_labels(df, thr)
     X = build_features(df, it, cfg, tz)

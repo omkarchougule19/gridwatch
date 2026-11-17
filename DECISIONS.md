@@ -186,3 +186,22 @@ Citations were written from memory. **Check the exact titles and report IDs befo
 - **The network on this machine drops DNS lookups intermittently** (ercot.com, pythonhosted, Open-Meteo, EIA all failed at least once). So downloads now run in **parallel chunks with retries** (one ERCOT year or one MISO month per chunk, 8 at a time). Each chunk is saved on its own, so a failure only re-runs that chunk.
 - **MISO load/weather coverage (2023-01 → 2026-10):** load 0.1% missing, BA load forecast 0.4%, GFS day-ahead temperature 1.5%.
 - **ERCOT weather:** 48,960 hours, 1.0% missing.
+
+### 18. Real data, first results (2026-11-17, ~13:20)
+- **MISO built** (`data/processed/MISO.parquet`): 33,600 hours, 2023-01-01 → 2026-10-31.
+  - Missing: prices 0%, load 0.1%, BA load forecast 0.4%, forecast temperatures 1.5%.
+- **MISO ILLINOIS.HUB real-time price:**
+  - median $25.5, p99 $177, p99.9 $710, max $7,485/MWh.
+  - The minimum is -$140; negative prices are real.
+- **MISO threshold decision: $1,000 fixed gives 0 train events**, so nothing can be learned. **MISO now uses the train-split 99th percentile = $111.3/MWh** (config `label.regions.MISO`). The per-region override takes 2 lines in `_common.prepare`.
+
+  | threshold | train hrs / events | val hrs / events | test hrs / events |
+  |---|---|---|---|
+  | $1000 | 0 / 0 | 1 / 1 | 20 / 13 |
+  | $500 | 5 / 5 | 11 / 9 | 41 / 26 |
+  | p99.5 ($154) | 66 / 59 | 95 / 57 | 261 / 120 |
+  | **p99 ($111)** | **132 / 101** | **178 / 89** | **473 / 184** |
+  | p98 ($83) | 263 / 173 | 338 / 150 | 716 / 240 |
+- **Distribution shift:** the MISO test period has about 3.5× the spike hours of train (473 vs 132 at p99). 2025–26 was more volatile than 2023–H1 2024. Mention this in the report; it will lower test precision and make calibration harder.
+- **Download issue:** running all 6 ERCOT yearly archive downloads in parallel failed every time (OSError and BadZipFile). The same file downloads fine on its own (DAM 2024 in 9 s), so the parallel requests to ERCOT collide or get throttled. **ERCOT years now download one at a time.** MISO daily files work fine in parallel (14 workers).
+- **ERCOT load:** 48,937 hours, nothing missing; BA forecast 0.3% missing; 29–91 GW. The EIA request treats the end date as exclusive, so Oct 31 2026 is missing (a negligible loss).

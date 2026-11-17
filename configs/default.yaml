@@ -32,6 +32,8 @@ label:
   price_threshold_usd: 1000 # absolute spike threshold
   price_percentile: null    # e.g. 0.99 -> threshold computed on the TRAIN split only
   event_merge_gap_hours: 6  # stress hours closer than this belong to one event
+  regions:                  # per-region overrides of the keys above
+    MISO: {price_threshold_usd: null, price_percentile: 0.99}   # $1000 -> 0 train events (DECISIONS.md §18)
 
 splits:                     # inclusive date ranges, local dates
   train: ["2021-04-01", "2024-06-30"]   # day-ahead forecast archive starts ~2021-04 (DECISIONS.md §7)
