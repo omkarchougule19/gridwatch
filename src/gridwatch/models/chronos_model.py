@@ -47,10 +47,12 @@ class ChronosStress:
         # training scripts or AutoGluon's Chronos fine-tune), then reload from the checkpoint.
         return self
 
-    def predict_proba_from_history(self, history: pd.Series, issue_times: list[pd.Timestamp], horizon: int = 34) -> pd.DataFrame:
+    def predict_proba_from_history(self, history: pd.Series, issue_times, horizon: int = 34,
+                                   batch_size: int = 64) -> pd.DataFrame:
         """For each issue time, forecast `horizon` hours ahead using only the history up to that time.
 
         horizon=34 covers 14:00 D-1 through 23:00 D. Returns long rows: issue_time, target_time, p.
+        Missing prices in the context stay NaN; Chronos treats them as missing values.
         """
         import torch
 
@@ -58,14 +60,27 @@ class ChronosStress:
             self._load()
         if self.threshold is None:
             raise ValueError("set threshold (the same price threshold used for the labels)")
+        history = history.sort_index()
         rows = []
-        for t0 in issue_times:
-            ctx = history.loc[:t0].iloc[-self.context_hours:]
+        issue_times = list(issue_times)
+        for i in range(0, len(issue_times), batch_size):
+            batch = issue_times[i:i + batch_size]
+            ctxs = [history.loc[:t0].iloc[-self.context_hours:] for t0 in batch]
             quantiles, _ = self.pipeline.predict_quantiles(
-                torch.tensor(ctx.to_numpy(), dtype=torch.float32), prediction_length=horizon,
-                quantile_levels=self.levels.tolist(),
-            )
-            p = exceedance_prob(quantiles[0].cpu().numpy(), self.levels, self.threshold)
-            targets = pd.date_range(ctx.index[-1] + pd.Timedelta(hours=1), periods=horizon, freq="h")
-            rows.append(pd.DataFrame({"issue_time": t0, "target_time": targets, "p": p}))
+                [torch.tensor(c.to_numpy(), dtype=torch.float32) for c in ctxs],
+                prediction_length=horizon, quantile_levels=self.levels.tolist())
+            # Bolt returns a (batch, horizon, q) tensor; Chronos-2 returns a list of (n_variates, horizon, q) tensors.
+            q = [t.float().cpu().numpy().reshape(-1, horizon, len(self.levels))[0] for t in quantiles]
+            for t0, c, qi in zip(batch, ctxs, q):
+                rows.append(pd.DataFrame({
+                    "issue_time": t0,
+                    "target_time": pd.date_range(c.index[-1] + pd.Timedelta(hours=1), periods=horizon, freq="h"),
+                    "p": exceedance_prob(qi, self.levels, self.threshold)}))
         return pd.concat(rows, ignore_index=True)
+
+    def predict_for_targets(self, history: pd.Series, issue_time: pd.Series, **kw) -> pd.Series:
+        """P(stress) for each target hour in `issue_time`'s index, from the forecast issued at that hour's issue time."""
+        long = self.predict_proba_from_history(history, issue_time.unique(), **kw)
+        want = pd.DataFrame({"issue_time": issue_time.reset_index(drop=True), "target_time": issue_time.index})
+        got = want.merge(long, on=["issue_time", "target_time"], how="left")
+        return pd.Series(got["p"].to_numpy(), index=issue_time.index, name="p")

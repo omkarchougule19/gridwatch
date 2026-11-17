@@ -173,3 +173,16 @@ Citations were written from memory. **Check the exact titles and report IDs befo
 - **Azure removed:** the proposal mentions an Azure pipeline, but the ingest pulls directly from the public sources and saves them locally. The Azure settings were dropped from `.env.example`, and `.env` holds only `EIA_API_KEY`.
 - **MISO ingest starts 2023-01-01:** MISO price files only start then, and hours without a price are masked anyway, so earlier load and weather for MISO would go unused.
 - Added the `data/external/alerts.csv` template (format and allowed `kind` values).
+
+### 17. Chronos and data download (2026-11-17, ~13:00)
+- **Chronos-2 (`amazon/chronos-2`) instead of Chronos-Bolt:** in chronos-forecasting 2.3.2, only `Chronos2Pipeline` has a built-in `.fit()` for fine-tuning (full or LoRA). That means no custom training loop, and zero-shot vs fine-tuned compares the same model.
+- **Quantile levels changed to [0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99]**, because spike detection depends on the upper tail.
+- `predict_proba_from_history` now runs in batches (64 forecasts per call), and the code handles both output formats: Bolt returns a tensor (batch, h, q), Chronos-2 a list of (variates, h, q) tensors. Tested locally on CPU with `chronos-bolt-tiny`: all target hours matched to their issue-time forecast, with no gaps.
+- **New `predict_for_targets`:** maps each target hour to the forecast issued at 14:00 the day before.
+- **Colab notebook** (`notebooks/chronos_colab.ipynb`):
+  - Zero-shot and fine-tuned runs, each calibrated (isotonic) and with its threshold tuned on val.
+  - Predictions are saved as `models/chronos-*.pkl` (`{"preds": ...}`), and `evaluate.py` reads stored predictions, so Chronos joins the same significance test and plots.
+  - Fine-tuning uses the **train-split prices only**, with val prices for validation loss.
+- **The network on this machine drops DNS lookups intermittently** (ercot.com, pythonhosted, Open-Meteo, EIA all failed at least once). So downloads now run in **parallel chunks with retries** (one ERCOT year or one MISO month per chunk, 8 at a time). Each chunk is saved on its own, so a failure only re-runs that chunk.
+- **MISO load/weather coverage (2023-01 → 2026-10):** load 0.1% missing, BA load forecast 0.4%, GFS day-ahead temperature 1.5%.
+- **ERCOT weather:** 48,960 hours, 1.0% missing.

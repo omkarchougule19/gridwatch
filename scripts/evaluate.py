@@ -52,8 +52,11 @@ def main():
             y, it = d["y"].loc[m, ycol], d["issue_time"][m]
             preds = {}
             for name, s in saved.items():
-                X = d["X"][m].drop(columns=s.get("dropped", []))
-                preds[name] = pd.Series(score(s["model"], X), index=y.index)
+                if "preds" in s:  # stored predictions, e.g. Chronos run on Colab (notebooks/chronos_colab.ipynb)
+                    preds[name] = s["preds"].reindex(y.index).fillna(0.0)
+                else:
+                    X = d["X"][m].drop(columns=s.get("dropped", []))
+                    preds[name] = pd.Series(score(s["model"], X), index=y.index)
                 metrics.append({"region": region, "view": view, "model": name,
                                 **evaluate(y, preds[name], it, s["threshold"], gap)})
             if y.sum() and len(preds) > 1:

@@ -75,10 +75,10 @@ models:
   naive_bayes:                           # course wk 4
     estimator: sklearn.naive_bayes.GaussianNB
   chronos:
-    model_id: amazon/chronos-bolt-small
+    model_id: amazon/chronos-2          # has built-in .fit() for fine-tuning (Chronos2Pipeline)
     context_hours: 512
     target: rt_price
-    quantile_levels: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    quantile_levels: [0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99]   # upper tail matters for spikes
 
 evaluation:
   alert_threshold: tune_on_val   # or a float
