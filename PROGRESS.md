@@ -16,8 +16,8 @@ The full log of decisions and findings is in [DECISIONS.md](DECISIONS.md). Appen
 ## Resume here
 1. **Check the ERCOT price chunks:** `data/interim/chunks/ERCOT_*.parquet` should have 6 files (2021–2026). If any are missing, rerun the ones missing, one at a time:
    `.venv\Scripts\python -I <scratchpad>\fetch_chunk.py ERCOT 2022-01-01 2022-12-31 data/interim/chunks`
-   The helper scripts `fetch_chunk.py` and `assemble.py` live in the session scratchpad. If that folder has been cleared, the same thing is: `python -m gridwatch.data.ingest --region ERCOT --start 2021-04-01 --end 2026-10-31` (slower, no chunking).
-2. Assemble ERCOT and build `data/processed/ERCOT.parquet`, then run `python scripts/count_events.py`. Decide whether ERCOT stays at $1,000 or moves to a percentile.
+   Helpers are in `scripts/download/` (chunk list: `chunks.txt`; live view: `progress.py data/interim/chunks scripts/download/chunks.txt`).
+2. `python scripts/download/assemble.py` to assemble and build `data/processed/ERCOT.parquet`, then run `python scripts/count_events.py`. Decide whether ERCOT stays at $1,000 or moves to a percentile.
 3. Train all models (`scripts/train.py --model <name>` for rule, logreg, random_forest, xgboost, mlp, knn, naive_bayes) and run `scripts/evaluate.py --models rule ...`.
 4. Ablations: `--drop temp_ cdd hdd`, `--drop rt_price da_price`, `--drop load_fcst`, and `--label secondary` once alerts.csv exists.
 5. Chronos on Colab (zero-shot, then fine-tuned). Copy `models/chronos-*.pkl` back and include them in `evaluate.py`.
