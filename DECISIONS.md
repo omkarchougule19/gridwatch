@@ -205,3 +205,23 @@ Citations were written from memory. **Check the exact titles and report IDs befo
 - **Distribution shift:** the MISO test period has about 3.5× the spike hours of train (473 vs 132 at p99). 2025–26 was more volatile than 2023–H1 2024. Mention this in the report; it will lower test precision and make calibration harder.
 - **Download issue:** running all 6 ERCOT yearly archive downloads in parallel failed every time (OSError and BadZipFile). The same file downloads fine on its own (DAM 2024 in 9 s), so the parallel requests to ERCOT collide or get throttled. **ERCOT years now download one at a time.** MISO daily files work fine in parallel (14 workers).
 - **ERCOT load:** 48,937 hours, nothing missing; BA forecast 0.3% missing; 29–91 GW. The EIA request treats the end date as exclusive, so Oct 31 2026 is missing (a negligible loss).
+
+### 19. ERCOT built, threshold (2026-11-17, ~13:27)
+- **ERCOT built** (`data/processed/ERCOT.parquet`): 48,960 hours, 2021-04-01 → 2026-10-31.
+  - Missing: prices 0%, load 0.1%, BA forecast 0.3%, forecast temperatures 1.0%.
+  - Prices: median $25, p99 $235, p99.9 $2,015, max $5,087.
+  - Downloaded one year at a time, 64–91 s per year.
+- **The opposite shift from MISO:** ERCOT spikes were common in 2021–23 but nearly vanished in 2025–26. One likely cause is the large build-out of batteries and solar; that needs a citation if it goes in the report.
+
+  | threshold | train hrs / events | val hrs / events | test hrs / events |
+  |---|---|---|---|
+  | $1000 | 105 / 44 | 8 / 6 | **1 / 1** |
+  | $500 | 209 / 77 | 9 / 7 | 13 / 6 |
+  | p99.5 ($745) | 143 / 51 | 9 / 7 | 4 / 3 |
+  | **p99 ($329)** | **285 / 105** | **17 / 11** | **26 / 11** |
+- **Decision: ERCOT also uses the train-split 99th percentile ($329/MWh)**, the same rule as MISO, applied consistently across regions.
+- **Open (team decision): ERCOT test has only about 11 events and val about 11.** The TA said to add regions if events are scarce. Options:
+  - (a) add SPP, PJM or more hubs via gridstatus;
+  - (b) lower ERCOT to p98;
+  - (c) pool regions for the event-level metrics;
+  - (d) report ERCOT as a "regime change" finding.
