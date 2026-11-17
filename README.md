@@ -1,66 +1,66 @@
 # GridWatch
 
-A 24-hour early warning for power grid stress and price spikes on ERCOT and MISO. This is the CS 441 (Fall 2026) project.
+A 24-hour early warning for power grid stress and price spikes on ERCOT and MISO. This is the CS 441 (Fall 2026) final project.
 
-For each hour of the next day, GridWatch predicts the probability that the grid will be stressed. It is run once each afternoon, at the "issue time".
+GridWatch runs once a day at 14:00 local time and predicts, for each hour of the next day, the probability that the grid will be stressed.
+- **Primary label:** the real-time price goes above a spike threshold.
+- **Secondary label:** an operator emergency alert or notice is in effect.
 
-- **Primary label:** the real-time price goes above a spike threshold (see `configs/default.yaml`).
-- **Secondary label:** the operator issues an emergency alert, notice or conservation appeal.
+Decisions and data findings are in [DECISIONS.md](DECISIONS.md). Status and next steps are in [PROGRESS.md](PROGRESS.md).
 
 ## Layout
 
 ```
-configs/default.yaml        regions, label thresholds, split dates, model params
-data/raw/                   untouched pulls (EIA load, prices, weather forecasts, alerts)
-data/interim/               cleaned per-source tables
-data/processed/             one hourly modeling table per region (parquet)
-data/external/              hand-curated files, e.g. test_events.csv
-notebooks/                  EDA and one-off analysis
-reports/figures/            plots for the write-up
-models/                     saved model artifacts
-scripts/                    command-line entry points (count_events, train, evaluate)
+configs/default.yaml        regions, data sources, label threshold, splits, the MODEL COMPARISON SET, evaluation
+data/interim/               cached raw pulls (git-ignored)
+data/processed/             one hourly table per region (git-ignored)
+data/external/              hand-curated: alerts.csv (secondary label), test_events.csv (curated test windows)
 src/gridwatch/
-  config.py                 YAML config loader
-  data/load.py              reads the hourly table, as-of join for issued forecasts
-  data/ingest.py            source pulls (wire up to the existing Azure pipeline)
-  labels.py                 price and alert labels, event extraction
-  features.py               leak-safe calendar, lag and weather features
-  splits.py                 time-based train/val/test split, curated test windows
-  models/                   rule baseline, XGBoost, Chronos
-  evaluate.py               PR-AUC, P/R at threshold, event-level recall, Brier
-tests/                      pytest unit tests
+  data/ingest.py            EIA-930, ERCOT/MISO prices (gridstatus), GFS day-ahead forecasts (Open-Meteo)
+  data/load.py              loads the hourly table, issue times, as-of join for forecasts
+  labels.py                 price/alert labels, groups stress hours into events
+  features.py               leak-safe calendar, holiday, lag, value-at-issue and forecast features
+  splits.py                 time-based train/val/test, curated-window mask
+  models/__init__.py        config-driven sklearn Pipeline factory (impute → scale → estimator)
+  models/rule_baseline.py   rule baseline (extreme temperature AND forecast load ≥ p95)
+  models/chronos_model.py   Chronos foundation model → P(price ≥ threshold)
+  evaluate.py               PR-AUC, P/R at threshold, event-level recall, Brier, paired block bootstrap
+scripts/                    count_events.py, train.py, evaluate.py
+tests/                      pytest
 ```
 
-## Setup
+## Models (course topic → model)
+| CS441 topic | Model (config key) |
+|---|---|
+| baseline | `rule` |
+| K-NN (wk 1–2) | `knn` |
+| linear classifiers (wk 4) | `logreg` |
+| Naive Bayes (wk 4) | `naive_bayes` |
+| trees / ensembles (wk 8) | `random_forest`, `xgboost` |
+| MLPs (wk 9) | `mlp` |
+| foundation models, 1-D signals (wk 12, 15) | `chronos` (zero-shot / fine-tuned on Colab) |
 
+To add a model, add a config entry with `estimator`, `params`, and optionally `search` and `balance`. No new code is needed.
+
+## Setup
 ```bash
-python -m venv .venv
-.venv\Scripts\activate          # Windows
-pip install -e ".[dev]"         # core + tests
-pip install -e ".[chronos]"     # torch + chronos (use a GPU, e.g. Colab, to fine-tune)
-cp .env.example .env            # add your EIA API key, etc.
+python -m venv .venv && .venv\Scripts\activate
+pip install -e ".[dev]"            # add ".[chronos]" for torch + Chronos
+copy .env.example .env             # set EIA_API_KEY (free: https://www.eia.gov/opendata/)
 ```
 
 ## Workflow
+```bash
+python -m gridwatch.data.ingest --region ERCOT --start 2021-04-01 --end 2026-10-31   # same for MISO
+python scripts/count_events.py                       # check event counts before fixing the test window
+python scripts/train.py --model xgboost              # CV search on train, calibrate + set the threshold on val
+python scripts/train.py --model xgboost --drop temp_ cdd hdd    # ablation (design-decision comparison)
+python scripts/evaluate.py --models rule logreg random_forest xgboost mlp knn naive_bayes
+#   -> reports/metrics_*.csv, significance_*.csv (paired bootstrap vs the first model), figures/ (PR + reliability)
+```
 
-1. Ingest the raw data, then build `data/processed/{region}.parquet` (schema below).
-2. `python scripts/count_events.py`: count the stress events in each split. If the 2025–26 window has only a handful, add regions (TA feedback).
-3. `python scripts/train.py --model xgboost` (or `rule`, `chronos`)
-4. `python scripts/evaluate.py --model xgboost`: reports results on the **continuous** test period and on the **curated** extreme-weather windows.
-
-### Processed table schema (one row per hour, UTC `ts` index)
-
-| column | meaning |
-|---|---|
-| `load_mw` | actual hourly load (EIA) |
-| `rt_price` | real-time price at the hub or system level, $/MWh |
-| `da_price` | day-ahead price, $/MWh |
-| `alert` | 1 if an operator emergency alert, notice or conservation appeal is in effect |
-| `temp_f_fcst`, `heat_index_fcst`, `wind_fcst` | weather forecast **as issued** before the issue time |
-
-## Guardrails from the proposal review
-
-- Use weather forecasts **as they were issued**, never the observed weather (`data/load.py: asof_forecasts`).
-- Make the price threshold the primary label and operator alerts the secondary label.
-- Report results on a continuous period as well as the curated (balanced) windows, because balancing inflates precision.
-- Count the events before fixing the test window. If they are scarce, add regions.
+## Guardrails (from the proposal review)
+- Use only weather forecasts **as issued** (the GFS run from the day before), never observed weather.
+- The price threshold is the primary label and operator alerts are the secondary label.
+- Report both the continuous test period and the curated windows, because balanced windows inflate precision.
+- Count events before fixing the test window. Add regions if events are scarce.

@@ -93,3 +93,30 @@ def test_exceedance_prob():
     q = np.array([[10.0, 50.0, 90.0]])
     assert exceedance_prob(q, levels, 50.0)[0] == pytest.approx(0.5)
     assert exceedance_prob(q, levels, 1000.0)[0] == 0.0
+
+
+def test_every_configured_model_fits_and_scores():
+    from gridwatch.config import load_config
+    from gridwatch.models import get_model, score
+
+    cfg = load_config()
+    rng = np.random.default_rng(0)
+    X = pd.DataFrame(rng.normal(size=(300, 4)), columns=["temp_f_fcst", "temp_f_fcst_max", "temp_f_fcst_min", "load_fcst_mw"])
+    X.iloc[::17, 0] = np.nan  # imputer must handle gaps (e.g. missing forecast days)
+    y = (X["load_fcst_mw"] > 1.2).astype(int)
+    for name in [n for n in cfg["models"] if n != "chronos"]:
+        p = score(get_model(name, cfg).fit(X, y), X)
+        assert p.shape == (300,) and np.all((p >= 0) & (p <= 1)), name
+
+
+def test_paired_bootstrap_detects_better_model():
+    from gridwatch.evaluate import paired_bootstrap
+
+    rng = np.random.default_rng(1)
+    idx = hourly(24 * 120)
+    y = pd.Series((rng.random(len(idx)) < 0.02).astype(int), index=idx)
+    good = pd.Series(y * 0.8 + rng.random(len(idx)) * 0.3, index=idx)
+    noise = pd.Series(rng.random(len(idx)), index=idx)
+    b = paired_bootstrap(y, {"noise": noise, "good": good}, ref="noise", n=200)
+    assert b.loc["good", "p_value"] < 0.05 and b.loc["good", "diff_lo"] > 0
+    assert np.isnan(b.loc["noise", "p_value"])

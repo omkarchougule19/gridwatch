@@ -34,7 +34,7 @@ label:
   event_merge_gap_hours: 6  # stress hours closer than this belong to one event
 
 splits:                     # inclusive date ranges, local dates
-  train: ["2019-01-01", "2024-06-30"]
+  train: ["2021-04-01", "2024-06-30"]   # day-ahead forecast archive starts ~2021-04 (DECISIONS.md §7)
   val:   ["2024-07-01", "2025-06-30"]
   test:  ["2025-07-01", "2026-10-31"]
   curated_test_windows: data/external/test_events.csv
@@ -43,19 +43,37 @@ features:
   lags_hours: [48, 72, 168]       # >= max lead time from issue to target, so no leakage
   rolling_windows_hours: [24, 168]
 
+# Comparison set. sklearn-style entries: `estimator` class path + `params`; `search` = grid tuned with
+# TimeSeriesSplit CV on train (scoring = average precision); `balance: scale_pos_weight` sets neg/pos at fit time.
 models:
   rule:
     temp_hot_f: 100
     temp_cold_f: 15
     load_quantile: 0.95
+  logreg:
+    estimator: sklearn.linear_model.LogisticRegression
+    params: {class_weight: balanced, max_iter: 2000}
+    search: {C: [0.01, 0.1, 1.0]}
+  random_forest:
+    estimator: sklearn.ensemble.RandomForestClassifier
+    params: {n_estimators: 300, class_weight: balanced_subsample, min_samples_leaf: 5, n_jobs: -1, random_state: 0}
+    search: {max_depth: [8, 16, null]}
   xgboost:
-    n_estimators: 600
-    max_depth: 6
-    learning_rate: 0.05
-    subsample: 0.8
-    colsample_bytree: 0.8
-    early_stopping_rounds: 50
-    scale_pos_weight: auto   # neg/pos ratio on train
+    estimator: xgboost.XGBClassifier
+    params: {n_estimators: 400, subsample: 0.8, colsample_bytree: 0.8, eval_metric: aucpr, tree_method: hist, random_state: 0}
+    balance: scale_pos_weight
+    search: {max_depth: [3, 6], learning_rate: [0.03, 0.1]}
+  mlp:
+    estimator: sklearn.neural_network.MLPClassifier
+    params: {hidden_layer_sizes: [64, 32], early_stopping: true, max_iter: 300, random_state: 0}
+    balance: sample_weight
+    search: {alpha: [0.0001, 0.01]}
+  knn:                                   # course wk 1-2 (instance-based)
+    estimator: sklearn.neighbors.KNeighborsClassifier
+    params: {weights: distance}
+    search: {n_neighbors: [15, 50]}
+  naive_bayes:                           # course wk 4
+    estimator: sklearn.naive_bayes.GaussianNB
   chronos:
     model_id: amazon/chronos-bolt-small
     context_hours: 512
@@ -65,3 +83,5 @@ models:
 evaluation:
   alert_threshold: tune_on_val   # or a float
   min_recall: 0.7                # threshold chosen to hit this recall on val
+  cv_folds: 4                    # TimeSeriesSplit folds for the hyperparameter search
+  calibrate: isotonic            # calibrate on val before threshold/Brier; null to skip

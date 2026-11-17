@@ -5,11 +5,13 @@ observations at or before issue_time; lags of at least the maximum lead time (ab
 """
 from __future__ import annotations
 
+import holidays
 import numpy as np
 import pandas as pd
 
 OBS_COLS = ["load_mw", "rt_price", "da_price"]
-FCST_COLS = ["temp_f_fcst", "heat_index_fcst", "wind_fcst"]
+# Known at the issue time: GFS temperature from the day before (mean/max/min over cities) and the BA's day-ahead load forecast
+FCST_COLS = ["temp_f_fcst", "temp_f_fcst_max", "temp_f_fcst_min", "load_fcst_mw"]
 
 
 def calendar_features(index: pd.DatetimeIndex, tz: str) -> pd.DataFrame:
@@ -23,7 +25,8 @@ def calendar_features(index: pd.DatetimeIndex, tz: str) -> pd.DataFrame:
     out["hour_cos"] = np.cos(2 * np.pi * local.hour / 24)
     out["doy_sin"] = np.sin(2 * np.pi * local.day_of_year / 365.25)
     out["doy_cos"] = np.cos(2 * np.pi * local.day_of_year / 365.25)
-    # TODO: is_holiday (the `holidays` package or a NERC holiday list)
+    us = holidays.country_holidays("US")
+    out["is_holiday"] = [d in us for d in local.date]
     return out
 
 
@@ -50,15 +53,14 @@ def at_issue_features(df: pd.DataFrame, issue_time: pd.Series) -> pd.DataFrame:
 
 
 def weather_features(df: pd.DataFrame, tz: str) -> pd.DataFrame:
+    # No "deviation from normal" feature: normals computed over all years would leak test-period weather.
+    # The trees/MLP can learn the month x temperature interaction themselves.
     out = df[[c for c in FCST_COLS if c in df.columns]].copy()
     if "temp_f_fcst" in out:
-        local = df.index.tz_convert(tz)
-        key = pd.Series(list(zip(local.month, local.hour)), index=df.index)
-        # Temperature deviation from its normal (the month-hour mean). TODO: fit the normals on the train split only.
-        normal = out["temp_f_fcst"].groupby(key).transform("mean")
-        out["temp_dev_from_normal"] = out["temp_f_fcst"] - normal
         out["cdd"] = (out["temp_f_fcst"] - 65).clip(lower=0)
         out["hdd"] = (65 - out["temp_f_fcst"]).clip(lower=0)
+    if "load_fcst_mw" in out:
+        out["load_fcst_vs_week_max"] = out["load_fcst_mw"] / df["load_mw"].shift(48).rolling(168, min_periods=1).max()
     return out
 
 

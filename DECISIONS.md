@@ -107,3 +107,64 @@ Citations were written from memory. **Check the exact titles and report IDs befo
 - Should we add regions (e.g. SPP, PJM via gridstatus) if the 2025–26 event counts are small?
 - Should we use NOAA NBM/NDFD archives to recover 2019–2021 training data (and Uri)?
 - Should we put the folder under git?
+
+---
+
+## Session 1, continued: 2026-11-17 (afternoon)
+
+### 11. Course schedule (the site loaded later: courses.grainger.illinois.edu/cs441/fa2026/)
+- **Topics:**
+  - K-NN and generalization
+  - clustering, PCA
+  - linear regression, logistic regression, SVM
+  - Naive Bayes
+  - EM, density estimation (MoG, KDE)
+  - outliers
+  - decision trees, ensembles and random forests
+  - SGD, MLPs
+  - CNNs, attention and transformers
+  - foundation models (CLIP, GPT)
+  - ethics and fairness, deploying ML
+  - audio and 1-D signals
+  - RL
+- **Final project due Sun Dec 13, 11:59pm. It cannot be late.** Exam 3 is Dec 3–8.
+- **Project doc requirements (Google Doc linked from the site):**
+  - Build a data pipeline, train models **while varying key design decisions**, and **evaluate and plot results, including which differences are statistically significant**.
+  - Write a report from the template and record a **5–6 min video**. The video and slides may not be AI-generated.
+  - The final evaluation set must be **designed by the team**, not taken from an ML benchmark (the penalty is -20).
+  - Code link required (-30 if missing). List group contributions (-10 if missing).
+  - Rubric: problem 15, ML approach 40, data 40, experiments 40, video 30.
+
+### 12. Model and training decisions (implemented)
+- **One config-driven sklearn factory** (`models/__init__.py`): `Pipeline(SimpleImputer(median) → StandardScaler → estimator)`. It replaced the hand-written XGBoost wrapper (`models/xgb.py` was deleted). Every model is a config entry.
+- **The comparison set follows the course:** rule, kNN, logistic regression, Naive Bayes, random forest, XGBoost, MLP, and Chronos (notebook).
+- **Imbalance handling:**
+  - logreg and RF: `class_weight` balanced.
+  - XGBoost: `scale_pos_weight = neg/pos`.
+  - **MLP: `sample_weight` balanced.** Without it, the MLP collapsed on MISO (val PR-AUC 0.005 → 0.47 on synthetic data).
+- **Hyperparameters:** `GridSearchCV` with `TimeSeriesSplit(4)` on train, scored by average precision.
+  - **Fix:** early time folds can have no stress hours, so their AP is NaN. Before the fix, MISO's grid search picked hyperparameters arbitrarily. The best candidate is now chosen by the mean over the folds that have positives (`refit=best_ignoring_empty_folds`).
+- **Calibration:** isotonic `CalibratedClassifierCV(FrozenEstimator(model))` fit on val. The alert threshold is then tuned on val as well. Val is used for both; this is acceptable here, and test is never touched.
+- **Rows without a price are masked out of every split**, so a missing price never counts as "no spike". This matters for MISO before 2023.
+- **Train start changed to 2021-04-01** (the forecast archive coverage, §7).
+
+### 13. Feature decisions
+- Weather features are `temp_f_fcst` and its max and min across cities, plus CDD and HDD. Heat index and wind were dropped (§7).
+- **Added `load_fcst_mw`** (the BA day-ahead load forecast from EIA-930) and `load_fcst_vs_week_max`.
+  - *Assumption to verify:* the BA's DF value for day D is published before 14:00 on D-1.
+- **Removed `temp_dev_from_normal`:** its normals were computed over all years, test included, which is a leak.
+- **Added `is_holiday`** (US federal holidays from the `holidays` package).
+- The rule baseline now uses `load_fcst_mw`, plus `temp_f_fcst_max` for heat and `temp_f_fcst_min` for cold, falling back to `load_mw_lag48`.
+
+### 14. Experiments and significance (implemented)
+- **`train.py --drop <prefixes>`:** feature-group ablations, saved under a tagged name (e.g. `xgboost-no_temp-no_cdd-no_hdd`). This covers "varying key design decisions". The label choice (`--label`) is another axis.
+- **`evaluate.py --models ...`:** produces a metrics table, a **paired day-block bootstrap** of PR-AUC vs the first model, and PR and reliability plots for each region and view.
+  - Whole days are resampled because hours are autocorrelated, so an i.i.d. bootstrap would be overconfident.
+  - This is the only hand-written statistics code; nothing in sklearn or scipy does a paired block bootstrap of AP directly.
+- **Synthetic smoke test** (this only shows the plumbing works; the numbers mean nothing about real performance): all 8 models and the ablation trained and evaluated, and the figures render.
+
+### 15. Still open
+- Run on real data (needs an EIA key). Then check event counts and choose MISO's threshold.
+- Chronos notebook on Colab (zero-shot first).
+- Build the curated `alerts.csv` and `test_events.csv` (two reviewers per row).
+- Possible further ablations: label (price vs alert), issue time, price threshold, and the price-at-issue features (`--drop rt_price da_price`).

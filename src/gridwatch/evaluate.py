@@ -63,5 +63,35 @@ def event_recall(
     }
 
 
+def paired_bootstrap(y: pd.Series, preds: dict[str, pd.Series], ref: str, n: int = 1000, block: str = "D",
+                     seed: int = 0) -> pd.DataFrame:
+    """Is model X's PR-AUC really different from `ref`'s? Paired block bootstrap over days.
+
+    Days are resampled with replacement and every model is scored on the same resample. Whole days are
+    resampled because hours inside a day are correlated, so an i.i.d. bootstrap would be overconfident.
+    Returns a 95% CI per model, plus the difference vs ref with its CI and a two-sided p-value.
+    """
+    rng = np.random.default_rng(seed)
+    days = y.index.floor(block)
+    uniq = days.unique()
+    rows = {d: np.flatnonzero(days == d) for d in uniq}
+    names = list(preds)
+    stats = []
+    for _ in range(n):
+        idx = np.concatenate([rows[d] for d in rng.choice(uniq, len(uniq))])
+        yy = y.values[idx]
+        if yy.sum() == 0:
+            continue
+        stats.append([average_precision_score(yy, preds[m].values[idx]) for m in names])
+    s = pd.DataFrame(stats, columns=names)
+    out = pd.DataFrame({"pr_auc_lo": s.quantile(0.025), "pr_auc_hi": s.quantile(0.975)})
+    diff = s.sub(s[ref], axis=0)
+    out[f"diff_vs_{ref}"] = diff.mean()
+    out["diff_lo"], out["diff_hi"] = diff.quantile(0.025), diff.quantile(0.975)
+    out["p_value"] = (2 * np.minimum((diff <= 0).mean(), (diff >= 0).mean())).clip(upper=1)
+    out.loc[ref, ["diff_lo", "diff_hi", "p_value"]] = np.nan
+    return out
+
+
 def evaluate(y: pd.Series, p: pd.Series, issue_time: pd.Series, threshold: float, merge_gap_hours: int = 6) -> dict:
     return {**hourly_metrics(y.values, p.values, threshold), **event_recall(y, p, issue_time, threshold, merge_gap_hours)}

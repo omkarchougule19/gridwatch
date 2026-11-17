@@ -13,7 +13,10 @@ def prepare(region: str, cfg: dict) -> dict:
     tz = cfg["issue"]["timezone"][region]
     df = load_region(region, cfg["paths"]["processed"])
     it = issue_times(df.index, tz, cfg["issue"]["hour_local"])
-    masks = time_split(df.index, cfg["splits"], tz)
+    # Only score hours that have a price, so a missing price is never treated as "no spike"
+    # (e.g. MISO before ~2023 has no prices).
+    has_price = df["rt_price"].notna()
+    masks = {k: v & has_price for k, v in time_split(df.index, cfg["splits"], tz).items()}
     lab = cfg["label"]
     thr = price_threshold(df.loc[masks["train"], "rt_price"], lab["price_threshold_usd"], lab["price_percentile"])
     y = make_labels(df, thr)
