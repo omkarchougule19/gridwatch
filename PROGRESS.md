@@ -22,4 +22,6 @@ The full log of decisions and findings is in [DECISIONS.md](DECISIONS.md). Appen
 5. Curate `data/external/alerts.csv` and `test_events.csv` (two reviewers per row).
 6. Report and 5–6 min video (no AI-generated video or slides). Include group contributions and the code link.
 
+TA meeting notes and questions: [docs/TA_meeting.md](docs/TA_meeting.md).
+
 Re-downloading data on a new machine: `scripts/download/` (chunked, with retries; ERCOT years must run one at a time). Then `python scripts/download/assemble.py`.
