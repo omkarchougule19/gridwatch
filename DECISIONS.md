@@ -330,3 +330,18 @@ Citations were written from memory. **Check the exact titles and report IDs befo
 - **Finding:** for MISO, almost all the skill comes from price information, mainly tomorrow's DA price. Weather and load forecasts add nothing *beyond* the DA price, most likely because the DA market already prices in the forecast weather and load. Without the DA price, weather/load/lag models reach about 0.13–0.15, still about 2× the rule (0.070).
 - **ERCOT** (full model 0.238): without the DA price 0.039; without all prices 0.012; without weather 0.198; without load forecast 0.181; without calendar 0.192. The direction matches MISO, but with 11 events the bootstrap is degenerate: some p-values are about 0 even though the CIs nearly coincide, because most resamples contain very few events. Report the ERCOT ablations as descriptive only.
 - **Code:** `evaluate.py` gained `--tag`, a suffix for output files.
+
+## 24. Chronos-2 results (2026-11-18)
+- **Runs:** zero-shot locally on CPU (about 4 min per region). Fine-tuned on Colab with a T4 GPU: full fine-tuning, 1000 steps, lr 1e-5, batch 32, on train-split RT prices only, with val as the validation input. In both cases the probabilities are calibrated isotonically on val and the threshold is tuned on val, the same as the sklearn models.
+- **Notebook:** reworked to upload the zip directly (no Google Drive) and to put `src` on `sys.path`, because Colab doesn't see an editable install until the runtime restarts.
+- **Val PR-AUC:** MISO 0.096 (zero-shot) and 0.092 (fine-tuned); ERCOT 0.002 and 0.005.
+- **Test PR-AUC:**
+  - MISO: zero-shot 0.199, fine-tuned 0.214, against logreg-no_rel 0.343 and the rule 0.070. Both Chronos runs are significantly worse than logreg (p < 0.001 and p = 0.002) and clearly better than the rule.
+  - Fine-tuned vs zero-shot: +0.015, p = 0.18 for MISO; p = 0.75 for ERCOT. Fine-tuning brought no significant gain.
+  - ERCOT: 0.016 and 0.021, near the base rate. The val-tuned threshold degenerates to alerting every hour (alert_rate 1.0), so ERCOT Chronos has no usable operating point.
+- **Interpretation:**
+  - Chronos sees only the RT price history. It cannot use tomorrow's DA price, which carries most of the signal (§23).
+  - MISO test scores higher than val for every model, consistent with spikes being more frequent and more persistent in the test period (§20).
+  - The comparison is still fair: Chronos gets the same issue-time information as the price-history features, minus the DA price, weather and load.
+  - A possible extension (TA question 9) is fine-tuning Chronos-2 with covariates: the DA price as a known-future covariate, plus load forecast and temperature.
+- **Output files:** `reports/metrics_y_price_chronos.csv`, `significance_y_price_chronos.csv`, `significance_y_price_chronos_ft_vs_zs.csv`, and figures tagged `_chronos`.

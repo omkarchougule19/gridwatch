@@ -43,12 +43,15 @@
 | MLP (ERCOT pick) | 0.114 | 0.305 [0.23, 0.40] |
 | Random forest | 0.182 | 0.076 |
 | XGBoost | 0.080 | 0.052 |
+| Chronos-2 zero-shot | 0.016 | 0.199 |
+| Chronos-2 fine-tuned | 0.021 | 0.214 [0.15, 0.29] |
 
 - **MISO:**
   - The validation pick is also the best on test: about 8.5× the 4% base rate, and significantly better than the rule, the trees and Naive Bayes (p < 0.001).
   - It is not significantly better than the MLP (p = 0.21).
   - On the precision-recall curve it reaches about 40% precision at 40% recall: the precision target is met, but at lower recall than planned.
 - **ERCOT:** every model beats the rule, but with only 11 events the confidence intervals are huge and no model is significantly better than another.
+- **Chronos-2 (MISO):** it beats the rule but is significantly below logreg (p ≤ 0.002), and fine-tuning gave no significant gain (p = 0.18). It sees only price history, not tomorrow's DA price.
 - **Ablations (MISO test):** dropping tomorrow's DA price cuts PR-AUC from 0.343 to 0.151 (p < 0.001). Dropping weather, the load forecast or calendar features changes nothing (p ≥ 0.3), most likely because the DA price already reflects forecast weather and load.
 
 ## Abbreviations and terms
