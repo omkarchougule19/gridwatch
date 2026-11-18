@@ -18,6 +18,23 @@
   - MISO's test period has about 3.5× more spike hours than training.
   - ERCOT spikes nearly vanished after 2023 (132 spike hours in 2023 vs 8 in 2025), leaving only about 11 val and about 11 test events at p99.
 
+## First results (validation year, Jul 2024–Jun 2025)
+| PR-AUC (higher is better) | ERCOT (spikes in 0.2% of hours) | MISO (spikes in 2.0% of hours) |
+|---|---|---|
+| Rule baseline | 0.009 | 0.059 |
+| Logistic regression, **without** tomorrow's DA price | 0.012 | 0.119 |
+| **Logistic regression, with tomorrow's DA price** | **0.077** | **0.322** |
+| XGBoost, with DA price | 0.062 | 0.050 |
+| MLP, with DA price | 0.059 | 0.135 |
+
+- **The biggest gain came from tomorrow's day-ahead price**, which is published before our 2 PM issue time: about 3–6× higher PR-AUC.
+- **Logistic regression beats the tree models.** In MISO, the day-ahead price grew more informative and moved beyond the training range over time:
+  - the share of spikes the DA market already priced in went from 6% in train to 45% in test;
+  - 177 test hours had DA prices above anything seen in training.
+  
+  Trees can't extrapolate beyond their training range; a linear model can.
+- **Precision is still low:** about 0.12 at 70% recall for MISO, against a target of 40–50%.
+
 ## Abbreviations and terms
 | Term | Meaning |
 |---|---|
@@ -57,3 +74,5 @@
 7. **Scope:** is comparing seven classic models plus Chronos the right breadth, or would you rather see fewer models with deeper ablations (features, label definition, forecast lead time)?
 8. **Val reuse:** we use the validation year both to calibrate probabilities and to choose the alert threshold, and test is never touched. Is that acceptable, or should calibration use a separate slice?
 9. **Chronos:** is univariate price forecasting enough for the foundation-model comparison, or should we fine-tune with covariates (load forecast, temperature), which Chronos-2 supports?
+10. **Day-ahead price as a feature:** tomorrow's DA price is public before our issue time, and it's what traders and operators really see. Is it fair to include? Since it dominates the results, should we frame the task as "predict real-time spikes beyond what the DA market already shows"?
+11. **Precision target:** our proposal targeted 40–50% precision at 70–80% recall. Current results are far below that. Is it acceptable to report this honestly, with an analysis of why (drift, rare events), rather than chase the target?
