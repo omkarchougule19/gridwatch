@@ -10,11 +10,11 @@
 - **Labels:** the primary label is a price spike, meaning a price at or above the **99th percentile of training-period prices** for that region (ERCOT $329/MWh, MISO $111/MWh). A flat $1,000 gave MISO zero training events. Operator alerts are the secondary label (hand-curated).
 - **Models (following the course):** a rule baseline, kNN, logistic regression, Naive Bayes, random forest, XGBoost, an MLP, and Chronos-2 (zero-shot and fine-tuned).
 - **Evaluation:**
-  - Time-based train (2021–Jun 2024), val (Jul 2024–Jun 2025) and test (Jul 2025–Oct 2026).
+  - Time-based splits: train (2021–Jun 2024), val (Jul 2024–Jun 2025) and test (Jul 2025–Oct 2026).
   - Metrics: PR-AUC, precision/recall at a threshold tuned on val, event-level recall ("did a forecast issued before the event warn about it?"), Brier score.
   - Significance: a paired day-block bootstrap.
   - Ablations by dropping feature groups.
-- **Finding so far:** the two regions shift in **opposite directions**.
+- **Distribution shift:** the two regions shift in **opposite directions**.
   - MISO's test period has about 3.5× more spike hours than training.
   - ERCOT spikes nearly vanished after 2023 (132 spike hours in 2023 vs 8 in 2025), leaving only about 11 val and about 11 test events at p99.
 
@@ -33,7 +33,7 @@
   - 177 test hours had DA prices above anything seen in training.
   
   Trees can't extrapolate beyond their training range; a linear model can.
-- **Precision is still low:** about 0.12 at 70% recall for MISO, against a target of 40–50%.
+- **Precision at the tuned threshold is low:** about 0.12 at 70% recall for MISO, against a target of 40–50%.
 
 ## Test-year results (Jul 2025–Oct 2026; models chosen on validation first)
 | Test PR-AUC [95% CI] | ERCOT (11 spike events) | MISO (184 spike events) |
@@ -92,6 +92,7 @@
 6. **Significance testing:** is a paired day-block bootstrap of PR-AUC enough, or should event-level recall also get confidence intervals or tests?
 7. **Scope:** is comparing seven classic models plus Chronos the right breadth, or would you rather see fewer models with deeper ablations (features, label definition, forecast lead time)?
 8. **Val reuse:** we use the validation year both to calibrate probabilities and to choose the alert threshold, and test is never touched. Is that acceptable, or should calibration use a separate slice?
-9. **Chronos:** is univariate price forecasting enough for the foundation-model comparison, or should we fine-tune with covariates (load forecast, temperature), which Chronos-2 supports?
+9. **Chronos:** univariate Chronos-2 (price history only) reaches 0.21 test PR-AUC on MISO, far below logistic regression, and fine-tuning didn't help significantly. Is that enough for the foundation-model comparison, or should we fine-tune it with covariates (tomorrow's DA price, load forecast, temperature), which Chronos-2 supports?
 10. **Day-ahead price as a feature:** tomorrow's DA price is public before our issue time, and it's what traders and operators really see. Is it fair to include? Since it dominates the results, should we frame the task as "predict real-time spikes beyond what the DA market already shows"?
-11. **Precision target:** our proposal targeted 40–50% precision at 70–80% recall. Current results are far below that. Is it acceptable to report this honestly, with an analysis of why (drift, rare events), rather than chase the target?
+11. **Precision target:** our proposal targeted 40–50% precision at 70–80% recall. On the MISO test year we get about 17% precision at 77% recall, or about 40% precision at 40% recall. Is it acceptable to report this trade-off honestly, with an analysis of why (drift, rare events), rather than chase the target?
+12. **ERCOT significance:** with 11 test events the day-block bootstrap gives unstable p-values (some near 0 even when the confidence intervals overlap). Should we report ERCOT descriptively only, or switch to a different test (for example, a permutation test at the event level)?
