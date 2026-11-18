@@ -46,6 +46,7 @@ features:
   lags_hours: [48, 72, 168]       # >= max lead time from issue to target, so no leakage
   rolling_windows_hours: [24, 168]
   target_da_price: true           # DA price of the target hour (published before the 14:00 issue time)
+  relative_prices: true           # scale-free rel_* price features for drift (ablate with --drop rel_)
 
 # Comparison set. sklearn-style entries: `estimator` class path + `params`; `search` = grid tuned with
 # TimeSeriesSplit CV on train (scoring = average precision); `balance: scale_pos_weight` sets neg/pos at fit time.

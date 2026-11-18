@@ -45,11 +45,16 @@ def lag_features(df: pd.DataFrame, lags: list[int], windows: list[int]) -> pd.Da
 
 def at_issue_features(df: pd.DataFrame, issue_time: pd.Series) -> pd.DataFrame:
     """The last observed values at the issue time (the freshest information that is still leak-safe)."""
-    obs = df[OBS_COLS].sort_index()
-    pos = obs.index.searchsorted(pd.DatetimeIndex(issue_time), side="right") - 1  # last row at or before issue
-    vals = pd.DataFrame(obs.to_numpy()[np.clip(pos, 0, None)], index=issue_time.index, columns=OBS_COLS)
+    return pd.concat({f"{c}_at_issue": value_at(df[c], issue_time) for c in OBS_COLS}, axis=1)
+
+
+def value_at(s: pd.Series, issue_time: pd.Series) -> pd.Series:
+    """For each target hour, the last value of `s` at or before that hour's issue time (leak-safe lookup)."""
+    s = s.sort_index()
+    pos = s.index.searchsorted(pd.DatetimeIndex(issue_time), side="right") - 1
+    vals = s.to_numpy()[np.clip(pos, 0, None)].astype(float)
     vals[pos < 0] = np.nan
-    return vals.add_suffix("_at_issue")
+    return pd.Series(vals, index=issue_time.index)
 
 
 def weather_features(df: pd.DataFrame, tz: str, include_target_da: bool = False) -> pd.DataFrame:
@@ -68,14 +73,28 @@ def weather_features(df: pd.DataFrame, tz: str, include_target_da: bool = False)
     return out
 
 
+def relative_features(df: pd.DataFrame, issue_time: pd.Series, tz: str) -> pd.DataFrame:
+    """Scale-free price features (prefix rel_), so tree models still work when price levels drift past the training
+    range (DECISIONS.md §21). Uses only data known at the issue time: the trailing-week median real-time price up to
+    the issue hour, and the target day's DA prices (posted before the issue time)."""
+    level = value_at(df["rt_price"].rolling(168, min_periods=24).median(), issue_time).clip(lower=1.0)
+    slog = lambda s: np.sign(s) * np.log1p(np.abs(s))  # log that also handles negative prices
+    out = pd.DataFrame(index=df.index)
+    out["rel_da_target_vs_week"] = df["da_price"] / level
+    out["rel_log_da_target"] = slog(df["da_price"])
+    out["rel_da_target_rank_in_day"] = df["da_price"].groupby(df.index.tz_convert(tz).date).rank(pct=True)
+    out["rel_rt_at_issue_vs_week"] = value_at(df["rt_price"], issue_time) / level
+    return out
+
+
 def build_features(df: pd.DataFrame, issue_time: pd.Series, cfg: dict, tz: str) -> pd.DataFrame:
     f = cfg["features"]
-    return pd.concat(
-        [
-            calendar_features(df.index, tz),
-            lag_features(df, f["lags_hours"], f["rolling_windows_hours"]),
-            at_issue_features(df, issue_time),
-            weather_features(df, tz, f.get("target_da_price", False)),
-        ],
-        axis=1,
-    )
+    parts = [
+        calendar_features(df.index, tz),
+        lag_features(df, f["lags_hours"], f["rolling_windows_hours"]),
+        at_issue_features(df, issue_time),
+        weather_features(df, tz, f.get("target_da_price", False)),
+    ]
+    if f.get("relative_prices", False):
+        parts.append(relative_features(df, issue_time, tz))
+    return pd.concat(parts, axis=1)

@@ -253,3 +253,31 @@ Citations were written from memory. **Check the exact titles and report IDs befo
   - ERCOT has no out-of-range DA hours, but its spikes are rare.
   - **Next experiment:** scale-free features (DA price relative to the trailing week's median or max, log price), and/or monotone constraints.
 - **New metric `alert_rate`** (share of hours flagged). kNN reported recall 1.0 with "0 false alarms/week" because no threshold reached 70% recall, so it alerted on every hour, which merges into one giant alarm episode that overlaps real events. `alert_rate` makes this visible.
+
+### 21. Scale-free price features (2026-11-17, ~23:30)
+- **Why:** a web literature check suggested this.
+  - DART-spread spike papers (Hubert, Lolas & Sircar 2026; Wang et al. 2024) confirm the DA price is the key signal.
+  - Tree models can't extrapolate; the standard fix is a transform to relative or scale-free values (Snowflake transforms blog; LightGBM `linear_tree` is "not a silver bullet").
+  - I found no spike-specific study of rolling normalization under drift.
+- **What:** `relative_features` (config `features.relative_prices: true`, ablate with `--drop rel_`):
+  - DA price of the target hour ÷ the trailing-week median RT price at the issue time;
+  - signed-log DA price;
+  - DA price rank within the target day;
+  - RT price at the issue time ÷ the trailing-week median.
+  
+  Only data known at 14:00 D-1 is used (new test: a future spike does not change earlier features). The lookup was refactored into a shared helper, `value_at`.
+- **Fits the assignment:** it's one more design decision with its own ablation, it doesn't touch the test set, and it's one function behind a config flag.
+- **Result: mixed. The extrapolation hypothesis is NOT confirmed for MISO.**
+
+  | val PR-AUC | ERCOT, no rel → rel | MISO, no rel → rel |
+  |---|---|---|
+  | logreg | 0.077 → 0.083 | **0.322 → 0.281** |
+  | random_forest | 0.053 → **0.093** | 0.063 → 0.061 |
+  | xgboost | 0.062 → 0.064 | 0.050 → 0.046 |
+  | mlp (vs the run-2 baseline) | 0.059 → 0.107 | 0.135 → 0.263 |
+  | naive_bayes (vs run 2) | 0.029 → 0.056 | 0.136 → 0.148 |
+  | knn | 0.108 (alert_rate 1.0, degenerate) | 0.097 (alert_rate 1.0) |
+  - **ERCOT:** helps most models, but only 11 val events, so the differences are probably within noise. Check with the bootstrap on test.
+  - **MISO:** the trees stay at about 0.05 even with in-range features. So their weakness is more likely **concept drift** (the DA–spike relationship changed: the share of spikes already priced in by DA went from 6% in train to 30% in val) than range extrapolation. Logreg is best **without** the rel features.
+- **Decision:** keep the flag on by default, report the ablation, and **choose each region's proposed model on val**. MISO: logreg-no_rel (0.322). ERCOT: mlp (0.107) or random_forest (0.093). kNN is excluded because its threshold degenerates to "alert always".
+- The `alert_rate` metric worked as intended: it shows kNN's threshold falling back to alerting every hour.

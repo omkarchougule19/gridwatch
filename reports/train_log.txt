@@ -1,36 +1,40 @@
 [ERCOT] rule
-  val: pr_auc=0.009, precision=0.027, recall=0.294, brier=0.022, threshold=0.500, n_events=11, events_caught=3, event_recall=0.273, false_alarms_per_week=0.652
+  val: pr_auc=0.009, precision=0.027, recall=0.294, alert_rate=0.021, event_recall=0.273, false_alarms_per_week=0.652
 [MISO] rule
-  val: pr_auc=0.059, precision=0.400, recall=0.101, brier=0.021, threshold=0.500, n_events=89, events_caught=7, event_recall=0.079, false_alarms_per_week=0.134
+  val: pr_auc=0.059, precision=0.400, recall=0.101, alert_rate=0.005, event_recall=0.079, false_alarms_per_week=0.134
 [ERCOT] logreg
-  val: pr_auc=0.077, precision=0.012, recall=0.706, brier=0.002, threshold=0.004, n_events=11, events_caught=7, event_recall=0.636, false_alarms_per_week=3.069
+  val: pr_auc=0.083, precision=0.050, recall=0.706, alert_rate=0.027, event_recall=0.727, false_alarms_per_week=1.650
 [MISO] logreg
-  val: pr_auc=0.322, precision=0.120, recall=0.702, brier=0.016, threshold=0.040, n_events=89, events_caught=60, event_recall=0.674, false_alarms_per_week=4.757
+  val: pr_auc=0.281, precision=0.096, recall=0.713, alert_rate=0.151, event_recall=0.685, false_alarms_per_week=6.061
 [ERCOT] naive_bayes
-  val: pr_auc=0.029, precision=0.005, recall=0.824, brier=0.002, threshold=0.003, n_events=11, events_caught=8, event_recall=0.727, false_alarms_per_week=5.083
+  val: pr_auc=0.056, precision=0.007, recall=0.824, alert_rate=0.232, event_recall=0.727, false_alarms_per_week=4.603
 [MISO] naive_bayes
-  val: pr_auc=0.136, precision=0.069, recall=0.753, brier=0.018, threshold=0.026, n_events=89, events_caught=60, event_recall=0.674, false_alarms_per_week=3.932
+  val: pr_auc=0.148, precision=0.093, recall=0.702, alert_rate=0.153, event_recall=0.618, false_alarms_per_week=3.606
 [ERCOT] xgboost
-  val: pr_auc=0.062, precision=0.041, recall=0.706, brier=0.002, threshold=0.023, n_events=11, events_caught=7, event_recall=0.636, false_alarms_per_week=2.474
+  val: pr_auc=0.064, precision=0.064, recall=0.765, alert_rate=0.023, event_recall=0.727, false_alarms_per_week=1.899
 [MISO] xgboost
-  val: pr_auc=0.050, precision=0.043, recall=0.753, brier=0.020, threshold=0.022, n_events=89, events_caught=73, event_recall=0.820, false_alarms_per_week=5.831
+  val: pr_auc=0.046, precision=0.037, recall=0.787, alert_rate=0.427, event_recall=0.831, false_alarms_per_week=5.543
 [ERCOT] random_forest
-  val: pr_auc=0.053, precision=0.055, recall=0.765, brier=0.002, threshold=0.038, n_events=11, events_caught=8, event_recall=0.727, false_alarms_per_week=1.841
+  val: pr_auc=0.093, precision=0.054, recall=0.706, alert_rate=0.025, event_recall=0.636, false_alarms_per_week=1.745
 [MISO] random_forest
-  val: pr_auc=0.063, precision=0.058, recall=0.770, brier=0.019, threshold=0.048, n_events=89, events_caught=71, event_recall=0.798, false_alarms_per_week=6.962
+  val: pr_auc=0.061, precision=0.057, recall=0.713, alert_rate=0.254, event_recall=0.753, false_alarms_per_week=6.540
 [ERCOT] mlp
-  val: pr_auc=0.059, precision=0.031, recall=0.706, brier=0.002, threshold=0.015, n_events=11, events_caught=8, event_recall=0.727, false_alarms_per_week=2.474
+  val: pr_auc=0.107, precision=0.034, recall=0.765, alert_rate=0.043, event_recall=0.727, false_alarms_per_week=2.724
 [MISO] mlp
-  val: pr_auc=0.135, precision=0.040, recall=0.798, brier=0.018, threshold=0.014, n_events=89, events_caught=74, event_recall=0.831, false_alarms_per_week=5.198
+  val: pr_auc=0.263, precision=0.073, recall=0.781, alert_rate=0.217, event_recall=0.787, false_alarms_per_week=6.560
 [ERCOT] knn
-  val: pr_auc=0.059, precision=0.002, recall=1.000, brier=0.002, threshold=0.001, n_events=11, events_caught=11, event_recall=1.000, false_alarms_per_week=0.000
+  val: pr_auc=0.108, precision=0.002, recall=1.000, alert_rate=1.000, event_recall=1.000, false_alarms_per_week=0.000
 [MISO] knn
-  val: pr_auc=0.070, precision=0.020, recall=1.000, brier=0.019, threshold=0.012, n_events=89, events_caught=89, event_recall=1.000, false_alarms_per_week=0.000
-[ERCOT] logreg-no_da_price_target
-  val: pr_auc=0.012, precision=0.004, recall=0.882, brier=0.002, threshold=0.002, n_events=11, events_caught=9, event_recall=0.818, false_alarms_per_week=5.581
-[MISO] logreg-no_da_price_target
-  val: pr_auc=0.119, precision=0.062, recall=0.753, brier=0.019, threshold=0.017, n_events=89, events_caught=65, event_recall=0.730, false_alarms_per_week=6.675
-[ERCOT] xgboost-no_da_price_target
-  val: pr_auc=0.017, precision=0.014, recall=0.706, brier=0.002, threshold=0.012, n_events=11, events_caught=9, event_recall=0.818, false_alarms_per_week=5.255
-[MISO] xgboost-no_da_price_target
-  val: pr_auc=0.044, precision=0.031, recall=0.843, brier=0.020, threshold=0.020, n_events=89, events_caught=80, event_recall=0.899, false_alarms_per_week=4.546
+  val: pr_auc=0.097, precision=0.020, recall=1.000, alert_rate=1.000, event_recall=1.000, false_alarms_per_week=0.000
+[ERCOT] logreg-no_rel
+  val: pr_auc=0.077, precision=0.012, recall=0.706, alert_rate=0.116, event_recall=0.636, false_alarms_per_week=3.069
+[MISO] logreg-no_rel
+  val: pr_auc=0.322, precision=0.120, recall=0.702, alert_rate=0.119, event_recall=0.674, false_alarms_per_week=4.757
+[ERCOT] xgboost-no_rel
+  val: pr_auc=0.062, precision=0.041, recall=0.706, alert_rate=0.034, event_recall=0.636, false_alarms_per_week=2.474
+[MISO] xgboost-no_rel
+  val: pr_auc=0.050, precision=0.043, recall=0.753, alert_rate=0.359, event_recall=0.820, false_alarms_per_week=5.831
+[ERCOT] random_forest-no_rel
+  val: pr_auc=0.053, precision=0.055, recall=0.765, alert_rate=0.027, event_recall=0.727, false_alarms_per_week=1.841
+[MISO] random_forest-no_rel
+  val: pr_auc=0.063, precision=0.058, recall=0.770, alert_rate=0.268, event_recall=0.798, false_alarms_per_week=6.962

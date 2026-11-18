@@ -120,3 +120,17 @@ def test_paired_bootstrap_detects_better_model():
     b = paired_bootstrap(y, {"noise": noise, "good": good}, ref="noise", n=200)
     assert b.loc["good", "p_value"] < 0.05 and b.loc["good", "diff_lo"] > 0
     assert np.isnan(b.loc["noise", "p_value"])
+
+
+def test_relative_features_use_only_past_prices():
+    from gridwatch.features import relative_features
+
+    idx = hourly(24 * 20)
+    df = pd.DataFrame({"rt_price": 30.0, "da_price": 30.0}, index=idx)
+    it = issue_times(idx, "America/Chicago", 14)
+    base = relative_features(df, it, "America/Chicago")
+    later = df.copy()
+    later.loc[idx[-30]:, "rt_price"] = 5000.0  # a future RT spike must not change earlier targets' features
+    changed = relative_features(later, it, "America/Chicago")
+    early = it < idx[-30]
+    pd.testing.assert_frame_equal(base[early.values], changed[early.values])
