@@ -1,9 +1,11 @@
 # GridWatch: project status and questions for the TA
 
-> **TL;DR:** Every day at 2 PM, GridWatch predicts the chance of a real-time power-price spike (above the 99th percentile) for each hour of the next day, in ERCOT and MISO. It uses public load, price and archived-weather-forecast data with no future leakage.
-> On the MISO test year, logistic regression is best: PR-AUC 0.34, about 8.5× the base rate and significantly better than the rule baseline, the tree models and Chronos-2 (0.21). Most of the signal comes from tomorrow's day-ahead price.
-> ERCOT spikes nearly disappeared after 2023, so with only 11 test events no model is significantly better than another.
-> Our main questions: how to handle the ERCOT shortage (lower the threshold or add regions), whether the day-ahead price is a fair feature, and whether reporting the precision/recall trade-off honestly is acceptable.
+> **TL;DR:** Every day at 2 PM Central, GridWatch predicts, for each of the next day's 24 hours, the probability that the real-time hub price goes above that region's 99th percentile of training-period prices ($329/MWh in ERCOT, Texas; $111/MWh in MISO, the Midwest).
+> It uses only information available at 2 PM: EIA-930 hourly load and the grid operator's own load forecast, price history at least 48 hours old, archived NOAA weather forecasts exactly as they were issued, and tomorrow's day-ahead price (posted about 1:30 PM); the data is split by time into train (Apr 2021–Jun 2024), validation (Jul 2024–Jun 2025) and test (Jul 2025–Oct 2026).
+> We compared a rule baseline, kNN, logistic regression, Naive Bayes, random forest, XGBoost, an MLP and Chronos-2: hyperparameters were tuned on train with time-series cross-validation, probabilities were calibrated and the alert threshold chosen on validation, and test was scored once, with day-block bootstrap significance tests.
+> On MISO's test year (184 spike events, spikes in 4% of hours), logistic regression is best, with PR-AUC 0.34, against 0.07 for the rule, 0.21 for fine-tuned Chronos-2 and 0.08 or less for the tree models; at its alert threshold it catches 77% of spike hours with 17% precision, or about 40% precision at 40% recall.
+> Ablations show that tomorrow's day-ahead price drives the result (removing it drops PR-AUC from 0.34 to 0.15) while weather and load add nothing on top of it, and the trees fail because MISO day-ahead prices drifted above anything seen in training.
+> ERCOT spikes almost vanished after 2023 (only 11 test events), so no model is significantly better than another there; our main questions are how to fix that (a lower threshold or more regions), whether the day-ahead price is a fair input, and whether it's acceptable to report the precision/recall trade-off honestly.
 
 ## Where the project stands
 - **Goal:** GridWatch gives grid operators and energy traders a day's warning of power-grid stress. Every afternoon at 2 PM it predicts, for each hour of the next day, the probability of a real-time price spike in **ERCOT** (Texas) and **MISO** (Midwest).
