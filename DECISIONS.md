@@ -281,3 +281,40 @@ Citations were written from memory. **Check the exact titles and report IDs befo
   - **MISO:** the trees stay at about 0.05 even with in-range features. So their weakness is more likely **concept drift** (the DA–spike relationship changed: the share of spikes already priced in by DA went from 6% in train to 30% in val) than range extrapolation. Logreg is best **without** the rel features.
 - **Decision:** keep the flag on by default, report the ablation, and **choose each region's proposed model on val**. MISO: logreg-no_rel (0.322). ERCOT: mlp (0.107) or random_forest (0.093). kNN is excluded because its threshold degenerates to "alert always".
 - The `alert_rate` metric worked as intended: it shows kNN's threshold falling back to alerting every hour.
+
+### 22. Test-year results (2026-11-17, ~23:40). Test set used once; models chosen on val beforehand (§21)
+- **Test period:** Jul 2025 – Oct 2026 (11,707 h per region).
+  - MISO: 473 spike hours / 184 events (base rate 4.0%).
+  - ERCOT: 26 spike hours / 11 events (base rate 0.2%).
+- **Files:**
+  - Full table: `reports/metrics_y_price.csv`.
+  - Bootstrap vs rule: `reports/significance_y_price_vs_rule.csv`.
+  - Bootstrap vs the best MISO model: `reports/significance_y_price_vs_logreg-no_rel.csv`.
+  - Figures: `reports/figures/pr_calib_{ERCOT,MISO}_test_y_price.png`.
+
+| test PR-AUC [95% CI] | ERCOT | MISO |
+|---|---|---|
+| rule (baseline) | 0.003 | 0.070 |
+| **logreg-no_rel** (MISO pick) | 0.238 | **0.343 [0.245, 0.445]** |
+| mlp (ERCOT pick) | 0.114 | 0.305 [0.234, 0.398] |
+| logreg (rel features) | 0.251 | 0.186 |
+| random_forest | 0.182 | 0.076 |
+| xgboost | 0.080 | 0.052 |
+| naive_bayes | 0.090 | 0.157 |
+| knn (alert_rate 1.0, degenerate) | 0.229 | 0.190 |
+
+- **MISO:**
+  - **logreg-no_rel, chosen on val, is also best on test**, at about 8.5× the base rate.
+  - Significantly better than the rule (p < 0.001), and than logreg with rel features, naive_bayes and random_forest (all p < 0.001).
+  - **Not** significantly better than the MLP (diff -0.036, CI [-0.101, 0.016], p = 0.21).
+  - The tree models are **not** significantly better than the rule (RF p = 0.69, XGB p = 0.20). This confirms the drift finding (§20–21).
+- **MISO operating point** (val-tuned threshold, target recall 70%):
+  - precision 0.17, recall 0.77, event recall 0.78, about 5.8 false-alarm episodes per week.
+  - From the PR curve, about **0.60 precision at 0.20 recall** and **about 0.40 precision at 0.40 recall**. The proposal's 40–50% precision is reachable only at lower recall than the 70–80% target. **Report this trade-off.**
+- **MISO calibration:** overconfident in the top bin (predicted about 0.40, observed about 0.27). Brier 0.035 vs 0.042 for the rule.
+- **ERCOT:**
+  - Every model is significantly better than the rule (which nearly never fires correctly), but the CIs are enormous: logreg [0.005, 0.43]. With 11 events, **no pairwise model difference is significant** (vs logreg-no_rel: MLP p = 0.19, RF p = 0.72, NB p = 0.24).
+  - The val-chosen ERCOT model (MLP, 0.114) is not the test-best (logreg 0.251), but that gap is not significant either.
+  - **Do not re-select on test.** Report ERCOT as underpowered: this supports the TA's "add regions" advice or a lower ERCOT threshold.
+- **Rel-feature ablation on test:** ERCOT RF 0.087 → 0.182 and logreg 0.238 → 0.251 (both within noise). MISO logreg 0.343 → 0.186 (rel features hurt, consistent with val).
+- **Not done yet:** the curated-window view (needs `data/external/test_events.csv`), the alert label (needs `alerts.csv`), and Chronos (Colab).

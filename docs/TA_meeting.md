@@ -35,6 +35,21 @@
   Trees can't extrapolate beyond their training range; a linear model can.
 - **Precision is still low:** about 0.12 at 70% recall for MISO, against a target of 40–50%.
 
+## Test-year results (Jul 2025–Oct 2026; models chosen on validation first)
+| Test PR-AUC [95% CI] | ERCOT (11 spike events) | MISO (184 spike events) |
+|---|---|---|
+| Rule baseline | 0.003 | 0.070 |
+| **Logistic regression (MISO pick)** | 0.238 | **0.343 [0.25, 0.45]** |
+| MLP (ERCOT pick) | 0.114 | 0.305 [0.23, 0.40] |
+| Random forest | 0.182 | 0.076 |
+| XGBoost | 0.080 | 0.052 |
+
+- **MISO:**
+  - The validation pick is also the best on test: about 8.5× the 4% base rate, and significantly better than the rule, the trees and Naive Bayes (p < 0.001).
+  - It is not significantly better than the MLP (p = 0.21).
+  - On the precision-recall curve it reaches about 40% precision at 40% recall: the precision target is met, but at lower recall than planned.
+- **ERCOT:** every model beats the rule, but with only 11 events the confidence intervals are huge and no model is significantly better than another.
+
 ## Abbreviations and terms
 | Term | Meaning |
 |---|---|

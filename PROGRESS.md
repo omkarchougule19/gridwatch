@@ -1,4 +1,4 @@
-# Progress (updated 2026-11-17, 23:10)
+# Progress (updated 2026-11-17, 23:45)
 
 The full log of decisions and findings is in [DECISIONS.md](DECISIONS.md). Append to it each session.
 **Final project due Sun Dec 13, 11:59pm. It cannot be late.**
@@ -17,7 +17,7 @@ The full log of decisions and findings is in [DECISIONS.md](DECISIONS.md). Appen
 
 ## Resume here
 1. **Team decision:** ERCOT has only about 11 val/test events. Add regions (SPP/PJM via gridstatus), lower ERCOT to p98, or pool regions? (DECISIONS.md §19)
-2. Try scale-free features (DA price vs the trailing week's median/max, log price) to help the trees with drift. Then retrain and run `python scripts/evaluate.py --models rule logreg naive_bayes random_forest xgboost mlp knn` on test.
+2. ~~Scale-free features + test evaluation~~ done (DECISIONS.md §21–22). MISO best is logreg-no_rel, test PR-AUC 0.343. ERCOT is underpowered (11 events).
 3. Ablations: `--drop da_price_target` (done for logreg/xgb), `--drop temp_ cdd hdd`, `--drop rt_price da_price`, `--drop load_fcst`, and `--label secondary` once alerts.csv exists.
 4. Chronos on Colab (zero-shot, then fine-tuned). Copy `models/chronos-*.pkl` back and include them in `evaluate.py`.
 5. Curate `data/external/alerts.csv` and `test_events.csv` (two reviewers per row).
