@@ -1,5 +1,10 @@
 # GridWatch: project status and questions for the TA
 
+> **TL;DR:** Every day at 2 PM, GridWatch predicts the chance of a real-time power-price spike (above the 99th percentile) for each hour of the next day, in ERCOT and MISO. It uses public load, price and archived-weather-forecast data with no future leakage.
+> On the MISO test year, logistic regression is best: PR-AUC 0.34, about 8.5× the base rate and significantly better than the rule baseline, the tree models and Chronos-2 (0.21). Most of the signal comes from tomorrow's day-ahead price.
+> ERCOT spikes nearly disappeared after 2023, so with only 11 test events no model is significantly better than another.
+> Our main questions: how to handle the ERCOT shortage (lower the threshold or add regions), whether the day-ahead price is a fair feature, and whether reporting the precision/recall trade-off honestly is acceptable.
+
 ## Where the project stands
 - **Goal:** GridWatch gives grid operators and energy traders a day's warning of power-grid stress. Every afternoon at 2 PM it predicts, for each hour of the next day, the probability of a real-time price spike in **ERCOT** (Texas) and **MISO** (Midwest).
 - **Data:** all collected by the team from public sources that were never packaged as ML datasets.
