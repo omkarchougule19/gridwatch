@@ -28,6 +28,7 @@ def hourly_metrics(y: np.ndarray, p: np.ndarray, threshold: float) -> dict:
         "precision": tp / (tp + fp) if tp + fp else float("nan"),
         "recall": tp / (tp + fn) if tp + fn else float("nan"),
         "brier": float(brier_score_loss(y, p)),
+        "alert_rate": float(pred.mean()),  # share of hours flagged; ~1.0 means "alert always" (exposes degenerate thresholds)
         "threshold": threshold,
         "n_hours": int(len(y)),
         "n_pos_hours": int(y.sum()),
@@ -35,12 +36,13 @@ def hourly_metrics(y: np.ndarray, p: np.ndarray, threshold: float) -> dict:
 
 
 def event_recall(
-    y: pd.Series, p: pd.Series, issue_time: pd.Series, threshold: float, merge_gap_hours: int = 6, lead_hours: int = 24
+    y: pd.Series, p: pd.Series, issue_time: pd.Series, threshold: float, merge_gap_hours: int = 6, lead_hours: int = 34
 ) -> dict:
-    """Did we warn at least once in the 24 hours before each event?
+    """Did we warn ahead of each event?
 
     An event is caught if some prediction with p >= threshold was issued in [start - lead_hours, start)
-    and targets an hour inside the event.
+    and targets an hour inside the event. lead_hours=34 is the forecast's full horizon: a 14:00 D-1 run covers
+    hours 10 to 33 h ahead. With 24, events starting after 14:00 on day D could never be caught.
     """
     events = find_events(y, merge_gap_hours)
     alerts = p >= threshold

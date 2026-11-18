@@ -225,3 +225,31 @@ Citations were written from memory. **Check the exact titles and report IDs befo
   - (b) lower ERCOT to p98;
   - (c) pool regions for the event-level metrics;
   - (d) report ERCOT as a "regime change" finding.
+
+### 20. First real training runs (2026-11-17, ~23:00)
+- **Run 1 (no day-ahead price for the target hour):** weak. Val PR-AUC was ERCOT 0.009–0.019 (base rate 0.2%) and MISO 0.036–0.119 (base rate 2.0%). The best model was logreg on MISO.
+- **Bug fixed, event-level recall:** the window was "issued ≤24 h before the event start", but a 14:00 D-1 run reaches 10–33 h ahead. Events starting after 14:00 on day D could never count as caught. **The window is now 34 h**, the full forecast horizon.
+- **Bug fixed, rule baseline:** its output is 0/1, so threshold tuning fell back to "alert every hour". **It now uses a fixed threshold of 0.5.**
+- **New feature `da_price_target`, the day-ahead (DA) price of the target hour** (config `features.target_da_price: true`).
+  - It is known at the 14:00 D-1 issue time: ERCOT posts DAM results around 13:30 CT. A FERC order (2020) directs MISO to post them at 13:30 ET = 12:30 CT. **Confirm MISO's current posting time.**
+  - This is what a trader or operator actually has when deciding.
+- **Run 2, with DA price:** the biggest gain so far.
+
+  | val PR-AUC | ERCOT, without → with | MISO, without → with |
+  |---|---|---|
+  | logreg | 0.012 → **0.077** | 0.119 → **0.322** |
+  | xgboost | 0.017 → 0.062 | 0.044 → 0.050 |
+  | random_forest | — → 0.053 | — → 0.063 |
+  | mlp | — → 0.059 | — → 0.135 |
+  | naive_bayes | — → 0.029 | — → 0.136 |
+  | knn | — → 0.059 | — → 0.070 |
+  | rule | 0.009 | 0.059 |
+
+  Logreg is best in both regions. MISO's 0.322 is about 16× the base rate, but precision at 70% recall is still only 0.12, far below the 40–50% target.
+- **Calibration is not why the trees lag:** without isotonic calibration, xgboost/RF/logreg val PR-AUC barely changes (MISO xgb 0.048, RF 0.060, logreg 0.334).
+- **Why the trees lag: the DA–spike relationship drifts and the range grows.**
+  - Share of MISO spike hours where DA was already ≥ threshold: train 6% → val 30% → test 45%. Early MISO spikes were real-time surprises; later ones were increasingly anticipated by the DA market.
+  - MISO hours with DA above the training max: val 10, **test 177**. Trees cannot extrapolate past their training range; logreg (linear) can.
+  - ERCOT has no out-of-range DA hours, but its spikes are rare.
+  - **Next experiment:** scale-free features (DA price relative to the trailing week's median or max, log price), and/or monotone constraints.
+- **New metric `alert_rate`** (share of hours flagged). kNN reported recall 1.0 with "0 false alarms/week" because no threshold reached 70% recall, so it alerted on every hour, which merges into one giant alarm episode that overlaps real events. `alert_rate` makes this visible.

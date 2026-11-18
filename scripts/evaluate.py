@@ -77,7 +77,7 @@ def main():
     tag = f"{ycol}"
     table = pd.DataFrame(metrics)
     table.to_csv(reports / f"metrics_{tag}.csv", index=False)
-    cols = ["region", "view", "model", "pr_auc", "precision", "recall", "event_recall", "false_alarms_per_week", "brier"]
+    cols = ["region", "view", "model", "pr_auc", "precision", "recall", "alert_rate", "event_recall", "false_alarms_per_week", "brier"]
     print(table[cols].round(3).to_string(index=False))
     if sig:
         sig = pd.concat(sig)

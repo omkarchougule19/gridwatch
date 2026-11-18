@@ -76,8 +76,11 @@ def main():
             model = calibrate(model, X[va], y[va], ev["calibrate"])
 
         p_val = pd.Series(score(model, X[va]), index=X.index[va])
-        thr = pick_threshold(y[va].values, p_val.values, ev["min_recall"]) \
-            if ev["alert_threshold"] == "tune_on_val" else float(ev["alert_threshold"])
+        if args.model == "rule":
+            thr = 0.5  # the rule outputs 0/1; tuning would fall back to "alert every hour"
+        else:
+            thr = pick_threshold(y[va].values, p_val.values, ev["min_recall"]) \
+                if ev["alert_threshold"] == "tune_on_val" else float(ev["alert_threshold"])
         res = evaluate(y[va], p_val, d["issue_time"][va], thr, cfg["label"]["event_merge_gap_hours"])
         print("  val: " + ", ".join(f"{k}={v:.3f}" if isinstance(v, float) else f"{k}={v}" for k, v in res.items()))
 

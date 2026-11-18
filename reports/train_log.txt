@@ -1,0 +1,36 @@
+[ERCOT] rule
+  val: pr_auc=0.009, precision=0.027, recall=0.294, brier=0.022, threshold=0.500, n_events=11, events_caught=3, event_recall=0.273, false_alarms_per_week=0.652
+[MISO] rule
+  val: pr_auc=0.059, precision=0.400, recall=0.101, brier=0.021, threshold=0.500, n_events=89, events_caught=7, event_recall=0.079, false_alarms_per_week=0.134
+[ERCOT] logreg
+  val: pr_auc=0.077, precision=0.012, recall=0.706, brier=0.002, threshold=0.004, n_events=11, events_caught=7, event_recall=0.636, false_alarms_per_week=3.069
+[MISO] logreg
+  val: pr_auc=0.322, precision=0.120, recall=0.702, brier=0.016, threshold=0.040, n_events=89, events_caught=60, event_recall=0.674, false_alarms_per_week=4.757
+[ERCOT] naive_bayes
+  val: pr_auc=0.029, precision=0.005, recall=0.824, brier=0.002, threshold=0.003, n_events=11, events_caught=8, event_recall=0.727, false_alarms_per_week=5.083
+[MISO] naive_bayes
+  val: pr_auc=0.136, precision=0.069, recall=0.753, brier=0.018, threshold=0.026, n_events=89, events_caught=60, event_recall=0.674, false_alarms_per_week=3.932
+[ERCOT] xgboost
+  val: pr_auc=0.062, precision=0.041, recall=0.706, brier=0.002, threshold=0.023, n_events=11, events_caught=7, event_recall=0.636, false_alarms_per_week=2.474
+[MISO] xgboost
+  val: pr_auc=0.050, precision=0.043, recall=0.753, brier=0.020, threshold=0.022, n_events=89, events_caught=73, event_recall=0.820, false_alarms_per_week=5.831
+[ERCOT] random_forest
+  val: pr_auc=0.053, precision=0.055, recall=0.765, brier=0.002, threshold=0.038, n_events=11, events_caught=8, event_recall=0.727, false_alarms_per_week=1.841
+[MISO] random_forest
+  val: pr_auc=0.063, precision=0.058, recall=0.770, brier=0.019, threshold=0.048, n_events=89, events_caught=71, event_recall=0.798, false_alarms_per_week=6.962
+[ERCOT] mlp
+  val: pr_auc=0.059, precision=0.031, recall=0.706, brier=0.002, threshold=0.015, n_events=11, events_caught=8, event_recall=0.727, false_alarms_per_week=2.474
+[MISO] mlp
+  val: pr_auc=0.135, precision=0.040, recall=0.798, brier=0.018, threshold=0.014, n_events=89, events_caught=74, event_recall=0.831, false_alarms_per_week=5.198
+[ERCOT] knn
+  val: pr_auc=0.059, precision=0.002, recall=1.000, brier=0.002, threshold=0.001, n_events=11, events_caught=11, event_recall=1.000, false_alarms_per_week=0.000
+[MISO] knn
+  val: pr_auc=0.070, precision=0.020, recall=1.000, brier=0.019, threshold=0.012, n_events=89, events_caught=89, event_recall=1.000, false_alarms_per_week=0.000
+[ERCOT] logreg-no_da_price_target
+  val: pr_auc=0.012, precision=0.004, recall=0.882, brier=0.002, threshold=0.002, n_events=11, events_caught=9, event_recall=0.818, false_alarms_per_week=5.581
+[MISO] logreg-no_da_price_target
+  val: pr_auc=0.119, precision=0.062, recall=0.753, brier=0.019, threshold=0.017, n_events=89, events_caught=65, event_recall=0.730, false_alarms_per_week=6.675
+[ERCOT] xgboost-no_da_price_target
+  val: pr_auc=0.017, precision=0.014, recall=0.706, brier=0.002, threshold=0.012, n_events=11, events_caught=9, event_recall=0.818, false_alarms_per_week=5.255
+[MISO] xgboost-no_da_price_target
+  val: pr_auc=0.044, precision=0.031, recall=0.843, brier=0.020, threshold=0.020, n_events=89, events_caught=80, event_recall=0.899, false_alarms_per_week=4.546
