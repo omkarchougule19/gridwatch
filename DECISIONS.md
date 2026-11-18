@@ -318,3 +318,15 @@ Citations were written from memory. **Check the exact titles and report IDs befo
   - **Do not re-select on test.** Report ERCOT as underpowered: this supports the TA's "add regions" advice or a lower ERCOT threshold.
 - **Rel-feature ablation on test:** ERCOT RF 0.087 → 0.182 and logreg 0.238 → 0.251 (both within noise). MISO logreg 0.343 → 0.186 (rel features hurt, consistent with val).
 - **Not done yet:** the curated-window view (needs `data/external/test_events.csv`), the alert label (needs `alerts.csv`), and Chronos (Colab).
+
+## 23. Feature-group ablations (2026-11-18)
+- **Base model:** logreg-no_rel, the MISO pick. Each run drops one feature group and retrains it the same way (CV on train, calibration and threshold on val). Run with `evaluate.py --tag ablation`, so the main test results are kept. Output: `reports/metrics_y_price_ablation.csv` and `reports/significance_y_price_ablation.csv`.
+- **Test PR-AUC, MISO** (full model 0.343):
+  - without the target-hour DA price: 0.151 (p < 0.001);
+  - without all price features (RT/DA lags, at-issue values, target DA): 0.135 (p < 0.001);
+  - without weather (temp_, cdd, hdd): 0.343 (p = 0.98);
+  - without the load forecast: 0.345 (p = 0.30);
+  - without calendar features: 0.340 (p = 0.71).
+- **Finding:** for MISO, almost all the skill comes from price information, mainly tomorrow's DA price. Weather and load forecasts add nothing *beyond* the DA price, most likely because the DA market already prices in the forecast weather and load. Without the DA price, weather/load/lag models reach about 0.13–0.15, still about 2× the rule (0.070).
+- **ERCOT** (full model 0.238): without the DA price 0.039; without all prices 0.012; without weather 0.198; without load forecast 0.181; without calendar 0.192. The direction matches MISO, but with 11 events the bootstrap is degenerate: some p-values are about 0 even though the CIs nearly coincide, because most resamples contain very few events. Report the ERCOT ablations as descriptive only.
+- **Code:** `evaluate.py` gained `--tag`, a suffix for output files.

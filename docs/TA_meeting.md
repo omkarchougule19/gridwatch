@@ -11,7 +11,7 @@
 - **Models (following the course):** a rule baseline, kNN, logistic regression, Naive Bayes, random forest, XGBoost, an MLP, and Chronos-2 (zero-shot and fine-tuned).
 - **Evaluation:**
   - Time-based train (2021–Jun 2024), val (Jul 2024–Jun 2025) and test (Jul 2025–Oct 2026).
-  - Metrics: PR-AUC, precision/recall at a threshold tuned on val, event-level recall ("did we warn in the 24 hours before?"), Brier score.
+  - Metrics: PR-AUC, precision/recall at a threshold tuned on val, event-level recall ("did a forecast issued before the event warn about it?"), Brier score.
   - Significance: a paired day-block bootstrap.
   - Ablations by dropping feature groups.
 - **Finding so far:** the two regions shift in **opposite directions**.
@@ -49,6 +49,7 @@
   - It is not significantly better than the MLP (p = 0.21).
   - On the precision-recall curve it reaches about 40% precision at 40% recall: the precision target is met, but at lower recall than planned.
 - **ERCOT:** every model beats the rule, but with only 11 events the confidence intervals are huge and no model is significantly better than another.
+- **Ablations (MISO test):** dropping tomorrow's DA price cuts PR-AUC from 0.343 to 0.151 (p < 0.001). Dropping weather, the load forecast or calendar features changes nothing (p ≥ 0.3), most likely because the DA price already reflects forecast weather and load.
 
 ## Abbreviations and terms
 | Term | Meaning |

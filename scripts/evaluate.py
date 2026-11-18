@@ -30,10 +30,12 @@ def main():
     ap.add_argument("--models", nargs="+", required=True, help="the first one is the significance reference")
     ap.add_argument("--label", default="primary", choices=["primary", "secondary"])
     ap.add_argument("--n-boot", type=int, default=1000)
+    ap.add_argument("--tag", default="", help="suffix for output files, e.g. ablations (keeps the main results)")
     ap.add_argument("--config")
     args = ap.parse_args()
     cfg = load_config(args.config)
     ycol, gap = label_col(cfg, args.label), cfg["label"]["event_merge_gap_hours"]
+    tag = ycol + (f"_{args.tag}" if args.tag else "")
     reports = cfg["paths"]["reports"]
     (reports / "figures").mkdir(parents=True, exist_ok=True)
 
@@ -71,10 +73,9 @@ def main():
             for a in (a1, a2):
                 a.legend(fontsize=7, loc="upper left", bbox_to_anchor=(1.01, 1))
             fig.tight_layout()
-            fig.savefig(reports / "figures" / f"pr_calib_{region}_{view}_{ycol}.png", dpi=120)
+            fig.savefig(reports / "figures" / f"pr_calib_{region}_{view}_{tag}.png", dpi=120)
             plt.close(fig)
 
-    tag = f"{ycol}"
     table = pd.DataFrame(metrics)
     table.to_csv(reports / f"metrics_{tag}.csv", index=False)
     cols = ["region", "view", "model", "pr_auc", "precision", "recall", "alert_rate", "event_recall", "false_alarms_per_week", "brier"]
