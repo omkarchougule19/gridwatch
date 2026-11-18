@@ -18,6 +18,31 @@
   - MISO's test period has about 3.5× more spike hours than training.
   - ERCOT spikes nearly vanished after 2023 (132 spike hours in 2023 vs 8 in 2025), leaving only about 11 val and about 11 test events at p99.
 
+## Abbreviations and terms
+| Term | Meaning |
+|---|---|
+| **ERCOT** | Electric Reliability Council of Texas. It runs most of the Texas power grid and its wholesale electricity market. |
+| **MISO** | Midcontinent Independent System Operator. It runs the grid and market across 15 central US states (including Illinois) and Manitoba. |
+| **ISO / RTO** | Independent System Operator / Regional Transmission Organization. These are the grid operators, such as ERCOT and MISO, that balance supply and demand and run electricity markets. |
+| **BA** | Balancing Authority. The entity that keeps supply and demand balanced in an area and reports load to EIA. |
+| **EIA / EIA-930** | U.S. Energy Information Administration. Form EIA-930 is its hourly report of each BA's demand and day-ahead demand forecast. |
+| **NOAA / GFS** | National Oceanic and Atmospheric Administration / Global Forecast System, NOAA's main weather forecast model. |
+| **Load** | Electricity demand, in megawatts (MW). |
+| **MWh, $/MWh** | Megawatt-hour, the unit of energy. Wholesale prices are quoted in dollars per MWh, usually about $20–50. |
+| **Real-time (RT) price** | The price set close to the moment power is delivered (5–15 min intervals, averaged to hourly). Spikes show up here. |
+| **Day-ahead (DA) price / DAM** | The price set in the Day-Ahead Market the afternoon before delivery. ERCOT posts it about 13:30 Central; MISO about 12:30 Central (to be verified). |
+| **Hub (HB_HUBAVG, ILLINOIS.HUB)** | A trading point whose price summarizes a region. We use ERCOT's hub average and MISO's Illinois hub. |
+| **LMP / SPP** | Locational Marginal Price (MISO) / Settlement Point Price (ERCOT). Both mean the electricity price at a location. |
+| **EEA** | Energy Emergency Alert. ERCOT's emergency levels when supply runs short. |
+| **Issue time** | When GridWatch makes its daily forecast: 14:00 local time on the day before (D-1), covering all 24 hours of day D. |
+| **p99 threshold** | The 99th percentile of training-period prices. Hours at or above it count as a spike. |
+| **PR-AUC** | Area under the precision-recall curve (average precision). Our main metric, because spikes are rare (0.2–2% of hours). |
+| **Event-level recall** | The share of spike events that got at least one warning before they started. |
+| **Brier score** | Mean squared error of the predicted probabilities, which measures calibration. |
+| **Block bootstrap** | Resampling whole days to get confidence intervals and p-values that respect hour-to-hour correlation. |
+| **Chronos-2** | Amazon's pretrained time-series foundation model. *Zero-shot* means used as-is; *fine-tuned* means further trained on our data. |
+| **Winter Storm Uri** | The February 2021 storm that caused massive Texas blackouts and $9,000/MWh prices. |
+
 ## Questions for the TA
 1. **Thresholds:** your feedback said to use the price threshold as the primary label. Is a **per-region percentile computed on the training years** (p99) acceptable instead of a fixed $/MWh value?
 2. **Too few ERCOT events:** ERCOT has only about 11 test events at p99. Which would you prefer?
