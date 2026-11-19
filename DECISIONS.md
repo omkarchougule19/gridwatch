@@ -353,3 +353,27 @@ Citations were written from memory. **Check the exact titles and report IDs befo
   - ERCOT spike hours fell from 132 (2023) to 8 (2025) while average load rose 17%, consistent with the battery fleet nearly doubling in 2025.
   - MISO spike hours rose from 83 to 233 to 365, with tighter reserve margins, record capacity prices and higher gas prices.
   - The model catches the headline events (Fern, the Sept 2026 heat dome: 100%) but only 62% of MISO "surprise" spike hours (DA price below the threshold) and 20% of ERCOT's.
+
+## 26. Curated test windows and the frozen final table (2026-11-18)
+- **Windows:** `scripts/curate_windows.py` writes `data/external/test_events.csv`. They are chosen on forecast weather only, never on prices:
+  - the 10 hottest and 10 coldest test days per region, with days within 3 days merged into one window;
+  - each window gets a matched_normal control: same length, within 4 weeks, closest to the month's median forecast temperature;
+  - a window overlapping a documented event (Winter Storm Fern; the MISO Sept 2026 heat dome) is tagged `_named`, with its source.
+  
+  Events picked only for their price, such as MISO Sept 17, 2026, are excluded on purpose. Rows still need two reviewers each (`checked_by`).
+- **Frozen final table:** `python scripts/evaluate.py --tag final --models logreg-no_rel rule knn naive_bayes random_forest xgboost mlp chronos-zeroshot chronos-finetuned`. Outputs `reports/metrics_y_price_final.csv`, `reports/significance_y_price_final.csv` and the `_final` figures. The report cites these files.
+- **Curated view (PR-AUC):**
+  - MISO: logreg-no_rel 0.568 [0.31, 0.77]. Significantly above the rule, Naive Bayes, RF, XGBoost and Chronos zero-shot; not significantly above the MLP (0.473) or kNN.
+  - ERCOT: logreg 0.349. With 11 spike hours in the windows, nothing is significant except vs the rule.
+  - Precision is inflated here because the windows are enriched with spikes (MISO base rate about 14%), so read it within the view only.
+- **By window type (logreg-no_rel, MISO):**
+
+  | Window type | Spike hours caught | Precision |
+  |---|---|---|
+  | Named events | 69 of 70 | 54–90% |
+  | Unnamed heat | 15 of 19 | 25% |
+  | Matched-normal days | 33 of 51 (65%) | 29% |
+
+  - The matched-normal days still held 51 spike hours (10% of their hours), so many MISO spikes happen in mild weather: surprise spikes again.
+- **ERCOT's hottest week, Aug 17–24, 2026 (109 °F forecast, about 90 GW load):** only 1 spike hour. Batteries absorbed the heat (§25), and the model stayed mostly quiet: mean P = 0.00, 23 alert hours in 11 days.
+- **kNN and Chronos on ERCOT:** they alert every hour (alert_rate 1.0) because of degenerate val thresholds; their PR-AUC is still valid.

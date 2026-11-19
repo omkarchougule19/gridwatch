@@ -20,7 +20,7 @@ The full log of decisions and findings is in [DECISIONS.md](DECISIONS.md). Appen
 2. ~~Scale-free features + test evaluation~~ done (DECISIONS.md §21–22). MISO best is logreg-no_rel, test PR-AUC 0.343. ERCOT is underpowered (11 events).
 3. ~~Feature-group ablations~~ done (DECISIONS.md §23): price/DA carries the skill, while weather/load/calendar add nothing beyond it. Still to run: `--label secondary` once alerts.csv exists.
 4. ~~Chronos zero-shot and fine-tuned~~ done (DECISIONS.md §24). MISO test 0.199 / 0.214 vs logreg 0.343. Fine-tuning gave no significant gain. Optional: Chronos-2 with covariates (the DA price).
-5. Curate `data/external/alerts.csv` and `test_events.csv` (two reviewers per row).
+5. ~~Curated test windows~~ done (DECISIONS.md §26; `scripts/curate_windows.py`); the team still has to review each row (`checked_by`). The frozen final table is `reports/metrics_y_price_final.csv`. Still open: `alerts.csv` for the secondary label (optional).
 6. Report and 5–6 min video (no AI-generated video or slides). Include group contributions and the code link.
 
 TA meeting notes and questions: [docs/TA_meeting.md](docs/TA_meeting.md).
