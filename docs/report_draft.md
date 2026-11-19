@@ -1,7 +1,7 @@
 # GridWatch: Day-Ahead Early Warning for Power-Price Spikes in ERCOT and MISO
 
 *CS441 Applied Machine Learning, Fall 2026, final project report (DRAFT)*
-*Team: [names]. Code: [GitHub link]*
+*Team: [names]. Code: https://github.com/omkarchougule19/gridwatch*
 
 > **Draft notes:** numbers come from `reports/metrics_y_price_final.csv` and `reports/significance_y_price_final.csv` unless stated otherwise. `[TODO]` marks things the team must fill in or check. Figures are in `docs/visuals/` and `reports/figures/`.
 
@@ -275,7 +275,7 @@ The day-ahead market price is the key input, and the hard residual is the surpri
 [TODO: who did what. Data pipeline, modelling, Chronos/Colab, curated windows review, news research, report, video.]
 
 ## Code and reproducibility
-Code: [TODO GitHub link]. To reproduce:
+Code: https://github.com/omkarchougule19/gridwatch. To reproduce:
 ```
 pip install -e ".[dev]"
 python -m gridwatch.data.ingest ...
