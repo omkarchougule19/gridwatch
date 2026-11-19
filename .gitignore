@@ -13,3 +13,6 @@ data/processed/*
 !data/**/.gitkeep
 models/*
 !models/.gitkeep
+
+# course feedback screenshot (private)
+screencapture-*.pdf
