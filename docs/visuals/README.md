@@ -23,5 +23,7 @@ GridWatch is a **classifier, not a price forecaster**.
 | 7 | `07_example_test_week.png` | The MISO test week with the most spikes: actual price (top), the model's day-ahead probability (bottom) | What a forecast actually looks like in use |
 | 8 | `08_model_comparison_test.png` | Test PR-AUC for all models, with 95% bootstrap CIs and the random-guess line | Headline result: logistic regression is best in MISO; ERCOT CIs are too wide to pick a winner |
 | 9 | `09_feature_ablation_miso.png` | MISO test PR-AUC when each feature group is removed | Removing the day-ahead price halves the score; weather and load add nothing on top of it |
+| 10 | `10_spikes_and_news.png` | Monthly spike hours annotated with the real-world events behind them | Ties the data to news: heat waves, winter storms, the ERCOT battery boom (sources in `docs/trends_and_news.md`) |
+| 11 | `11_load_vs_spike_hours_by_year.png` | Yearly average load vs yearly spike hours | ERCOT's load rises while its spikes collapse (batteries); MISO's spikes grow 3–4× (tighter supply) |
 
 **Also see `reports/figures/`:** precision-recall curves and reliability (calibration) plots per region, for example `pr_calib_MISO_test_y_price.png`.

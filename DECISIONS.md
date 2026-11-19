@@ -345,3 +345,11 @@ Citations were written from memory. **Check the exact titles and report IDs befo
   - The comparison is still fair: Chronos gets the same issue-time information as the price-history features, minus the DA price, weather and load.
   - A possible extension (TA question 9) is fine-tuning Chronos-2 with covariates: the DA price as a known-future covariate, plus load forecast and temperature.
 - **Output files:** `reports/metrics_y_price_chronos.csv`, `significance_y_price_chronos.csv`, `significance_y_price_chronos_ft_vs_zs.csv`, and figures tagged `_chronos`.
+
+## 25. TA guidance and trends/news analysis (2026-11-18)
+- **TA:** no new regions (PJM was not possible anyway: non-member accounts get limited API access). Keep the well-tuned models and look for interesting trends and the news behind them.
+- **Write-up:** `docs/trends_and_news.md`, with figures 10–11 in `docs/visuals/`.
+- **Findings:**
+  - ERCOT spike hours fell from 132 (2023) to 8 (2025) while average load rose 17%, consistent with the battery fleet nearly doubling in 2025.
+  - MISO spike hours rose from 83 to 233 to 365, with tighter reserve margins, record capacity prices and higher gas prices.
+  - The model catches the headline events (Fern, the Sept 2026 heat dome: 100%) but only 62% of MISO "surprise" spike hours (DA price below the threshold) and 20% of ERCOT's.

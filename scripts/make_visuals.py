@@ -264,6 +264,57 @@ def fig_ablation(cfg):
     save(fig, "09_feature_ablation_miso.png")
 
 
+EVENTS = {  # (date, label) of the news behind the biggest episodes; sources in docs/trends_and_news.md
+    "ERCOT": [("2022-07-13", "Jul 2022 heat:\nconservation appeals"), ("2023-08-20", "Aug–Sep 2023 heat,\nSep 6 EEA2"),
+              ("2025-01-01", "battery fleet ~doubles\nin 2025 (7.8→13.9 GW)"), ("2026-01-25", "Winter Storm\nFern")],
+    "MISO": [("2025-01-21", "Jan 2025\narctic blast"), ("2025-06-23", "Jun 2025 heat:\nMax Gen event"),
+             ("2026-01-24", "Winter Storm Fern:\nMax Gen emergency"), ("2026-09-02", "Sep 2026 heat dome:\nEEA2, record peak")],
+}
+
+
+def fig_news_timeline(data, cfg):
+    """10: monthly spike hours with the real-world events behind the biggest episodes."""
+    fig, axes = plt.subplots(2, 1, figsize=(11, 6.4), sharex=True)
+    for ax, (r, d) in zip(axes, data.items()):
+        y = d["y"]["y_price"].dropna().resample("MS").sum()
+        shade_splits(ax, cfg)
+        ax.bar(y.index, y.values, width=24, color=BLUE, align="edge")
+        top = y.max()
+        for i, (day, lab) in enumerate(EVENTS[r]):
+            t = pd.Timestamp(day, tz="UTC")
+            ax.axvline(t, color=ORANGE, lw=1, ls="--")
+            ax.text(t, top * (0.95 - 0.28 * (i % 2)), " " + lab, fontsize=7.5, color=INK, va="top")
+        ax.set_ylim(0, top * 1.05)
+        ax.set_ylabel("spike hours / month")
+        ax.set_title(f"{r}: spike hours per month and the news behind them")
+    fig.suptitle("Spike clusters line up with named heat waves and winter storms; ERCOT's quiet 2024–25 follows its "
+                 "battery boom", x=0.01, ha="left", fontsize=12, color=INK)
+    save(fig, "10_spikes_and_news.png")
+
+
+def fig_load_vs_spikes(data):
+    """11: yearly average load vs yearly spike hours: in ERCOT load keeps rising while spikes collapse."""
+    fig, axes = plt.subplots(2, 2, figsize=(11, 5.4), sharex="col")
+    for j, (r, d) in enumerate(data.items()):
+        df, y = d["df"], d["y"]["y_price"]
+        load = df["load_mw"].groupby(df.index.year).mean() / 1000
+        spikes = y.groupby(y.index.year).sum()
+        for i, (s, lab, c) in enumerate(((load, "average load (GW)", GRAY), (spikes, "spike hours", BLUE))):
+            ax = axes[i, j]
+            ax.bar(s.index, s.values, color=c, width=0.65)
+            for x, v in s.items():
+                ax.text(x, v, f"{v:.0f}", ha="center", va="bottom", fontsize=8, color=INK)
+            ax.set_ylabel(lab)
+            ax.set_ylim(0, s.max() * 1.18)
+            if i == 0:
+                ax.set_title(r)
+        axes[1, j].set_xticks(load.index)
+    axes[1, 0].text(2025.5, 120, "2021 = Apr–Dec, 2026 = Jan–Oct", fontsize=7.5, color=MUTED, ha="right")
+    fig.suptitle("ERCOT: load keeps rising (+17% since 2023) yet spike hours collapse. MISO: load +7%, spike hours up 3–4×",
+                 x=0.01, ha="left", fontsize=12, color=INK)
+    save(fig, "11_load_vs_spike_hours_by_year.png")
+
+
 def main():
     cfg = load_config()
     OUT.mkdir(parents=True, exist_ok=True)
@@ -277,6 +328,8 @@ def main():
     fig_example_week(cfg)
     fig_models(cfg)
     fig_ablation(cfg)
+    fig_news_timeline(data, cfg)
+    fig_load_vs_spikes(data)
 
 
 if __name__ == "__main__":
