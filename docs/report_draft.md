@@ -55,9 +55,9 @@ The full pipeline is in `src/gridwatch/data/ingest.py`. None of these sources is
 
 | Source | What | Why |
 |---|---|---|
-| EIA-930 (U.S. Energy Information Administration) | Hourly balancing-authority load and the operator's **day-ahead load forecast** | Demand and the operator's own expectation |
-| ERCOT (hub average HB_HUBAVG) and MISO (ILLINOIS.HUB) market data, via `gridstatus` | Hourly real-time and day-ahead prices | Label and price features |
-| NOAA GFS through the Open-Meteo *Previous Runs* archive | Temperature forecasts **as issued the day before** (`temperature_2m_previous_day1`) for 4 ERCOT and 5 MISO cities | Weather as the operator saw it at 2 PM, not hindsight weather |
+| EIA-930 (U.S. Energy Information Administration) [1] | Hourly balancing-authority load and the operator's **day-ahead load forecast** | Demand and the operator's own expectation |
+| ERCOT (hub average HB_HUBAVG) and MISO (ILLINOIS.HUB) market data, via `gridstatus` [2] | Hourly real-time and day-ahead prices | Label and price features |
+| NOAA GFS through the Open-Meteo *Previous Runs* archive [3] | Temperature forecasts **as issued the day before** (`temperature_2m_previous_day1`) for 4 ERCOT and 5 MISO cities | Weather as the operator saw it at 2 PM, not hindsight weather |
 | `holidays` package | US federal holidays | Calendar effects |
 
 **Coverage:**
@@ -97,7 +97,7 @@ Unit tests (`tests/test_core.py`) check that every load feature only uses values
 **Team-designed evaluation set.** Besides the continuous test period we built **curated windows** (`scripts/curate_windows.py`, `data/external/test_events.csv`) with a rule fixed before looking at model output:
 - the 10 hottest and 10 coldest forecast days of the test period per region, grouped into windows;
 - a matched normal-weather control window for each, of the same length, within 4 weeks;
-- windows overlapping documented grid emergencies (Winter Storm Fern, Jan 2026; the MISO heat dome, Sept 2026) are tagged with their source.
+- windows overlapping documented grid emergencies (Winter Storm Fern, Jan 2026 [4], [5]; the MISO heat dome, Sept 2026 [6]) are tagged with their source.
 
 Windows are selected on **weather only**, never on prices, so hot or cold windows without spikes stay in as hard negatives. Each row is checked by two team members [TODO: fill in `checked_by`].
 
@@ -106,7 +106,7 @@ Windows are selected on **weather only**, never on prices, so hot or cold window
 - Temperature vs load shows that spikes sit at the high-load extremes, but many extreme hours are calm.
 
 ## 3. ML approach (rubric: 40)
-**Models (all course topics):**
+**Models (all course topics [7]; implemented with scikit-learn [8] unless noted):**
 
 | Model | Course topic | Notes |
 |---|---|---|
@@ -115,9 +115,9 @@ Windows are selected on **weather only**, never on prices, so hot or cold window
 | Logistic regression | linear models | L2, C ∈ {0.01, 0.1, 1}, class-balanced |
 | Gaussian Naive Bayes | probabilistic | |
 | Random forest | trees and ensembles | 300 trees, depth ∈ {8, 16, none}, balanced subsampling |
-| XGBoost | boosting | depth ∈ {3, 6}, learning rate ∈ {0.03, 0.1}, `scale_pos_weight` |
+| XGBoost [9] | boosting | depth ∈ {3, 6}, learning rate ∈ {0.03, 0.1}, `scale_pos_weight` |
 | MLP | neural networks | (64, 32), early stopping, α ∈ {1e-4, 1e-2}, balanced sample weights |
-| Chronos-2 (zero-shot and fine-tuned) | foundation models, 1-D signals | Forecasts price quantiles 34 h ahead from 512 h of history; converted to P(price ≥ threshold) |
+| Chronos-2 (zero-shot and fine-tuned) [10], [11] | foundation models, 1-D signals | Forecasts price quantiles 34 h ahead from 512 h of history; converted to P(price ≥ threshold) |
 
 **Training protocol (identical for every model):**
 1. **Pipeline:** median imputation → standardization → estimator (`src/gridwatch/models/__init__.py`, config-driven).
@@ -246,17 +246,17 @@ The honest limit of a day-ahead system is the surprise spike: sudden outages, wi
 
 ### 4.8 Trends and the news behind them (Figures 10–11)
 - **ERCOT: spikes collapsed while demand grew.**
-  - Average load rose about 17% from 2023 to 2026, yet spike hours fell from 132 (2023) to 8 (2025).
-  - ERCOT's grid battery fleet nearly doubled in 2025 alone (7.8 → 13.9 GW), and the market monitor credits storage with fewer price spikes.
-  - The 2022–2023 training years contain the heat-driven scarcity era (conservation appeals in July 2022; the Sept 6, 2023 emergency, EEA2). That is concept drift with a physical cause, and it explains the scarce ERCOT test events.
+  - Average load rose about 17% from 2023 to 2026, yet spike hours fell from 132 (2023) to 8 (2025) [12].
+  - ERCOT's grid battery fleet nearly doubled in 2025 alone (7.8 → 13.9 GW) [13], [14], and the market monitor credits storage with fewer price spikes [15], [16].
+  - The 2022–2023 training years contain the heat-driven scarcity era [17] (conservation appeals in July 2022 [18]; the Sept 6, 2023 emergency, EEA2 [19], [20]). That is concept drift with a physical cause, and it explains the scarce ERCOT test events.
 - **MISO: spikes grew every year** (83 → 102 → 233 → 365 hours).
-  - Shrinking reserve margins (summer surplus 6.5 → 2.6 GW as coal and gas units retired).
-  - Record capacity prices ($666.50/MW-day for summer 2025/26, vs $30).
-  - Higher gas prices.
-  - The largest episodes match documented emergencies: Winter Storm Fern (Max Gen emergency, Jan 2026), the June 2025 heat wave, and the Sept 2026 heat dome (EEA2, record September peak).
+  - Shrinking reserve margins (summer surplus 6.5 → 2.6 GW as coal and gas units retired) [21]–[23].
+  - Record capacity prices ($666.50/MW-day for summer 2025/26, vs $30) [21], [22].
+  - Higher gas prices [24], [25].
+  - The largest episodes match documented emergencies: Winter Storm Fern (Max Gen emergency, Jan 2026) [5], [26], the June 2025 heat wave [27], and the Sept 2026 heat dome (EEA2, record September peak) [6].
   - The day-ahead market increasingly anticipates scarcity (hours with the DA price above threshold: 16 → 404), which is exactly why the day-ahead price grew into the dominant feature.
 
-Sources: `docs/trends_and_news.md`. These explanations are correlational; they are consistent with our data, but we did not test them causally.
+Sources: [12]–[27]. These explanations are correlational; they are consistent with our data, but we did not test them causally.
 
 ## 5. Discussion, limitations and future work
 - **Drift is the central difficulty.** The two regions drifted in opposite directions. A single fixed split exposes this honestly; a rolling-origin evaluation is a natural next step.
@@ -272,7 +272,14 @@ Using only information public at 2 PM the day before, a calibrated logistic regr
 The day-ahead market price is the key input, and the hard residual is the surprise spike the market itself did not foresee. ERCOT shows how quickly a market can change: its battery build-out made spikes rare enough that we cannot separate models there.
 
 ## Group contributions
-[TODO: who did what. Data pipeline, modelling, Chronos/Colab, curated windows review, news research, report, video.]
+We split the project evenly between the four of us and met regularly to make the main decisions together. Everyone helped with background reading on electricity markets, cleaning the raw data, writing the report and recording the video.
+
+| Member | Contributions |
+|---|---|
+| Omkar | Omkar built the data pipeline that pulls hourly load and load forecasts from EIA-930, hub prices through gridstatus, and the archived GFS weather forecasts from Open-Meteo. He also wrote the leak-safe feature code, the time-based splits and the unit tests that check no future information gets in. He set up the GitHub repository and put together the final report for submission. |
+| Ayush | Ayush defined the spike labels and counted events at different thresholds, which is how we chose the 99th percentile and studied the ERCOT p99 vs p98 question. He implemented the rule baseline, kNN, logistic regression and Naive Bayes, along with the shared training setup: time-series cross-validation, isotonic calibration and the alert threshold. He also ran Chronos-2 zero-shot and fine-tuned on Colab. |
+| Avni | Avni wrote the evaluation code: PR-AUC, event-level recall, false alarms per week and the paired day-block bootstrap we use for significance. She built and reviewed the curated extreme-weather test windows, researched the market trends and news behind the ERCOT and MISO results, and checked and formatted all of our references. |
+| Trupti | Trupti implemented the random forest, XGBoost and MLP models and ran the feature ablations. She also ran the scale-free feature experiment that explained why the tree models fail in MISO. She made the figures in the report, wrote the video script and slides, and edited the final video. |
 
 ## Code and reproducibility
 Code: https://github.com/omkarchougule19/gridwatch. To reproduce:
@@ -285,10 +292,59 @@ python scripts/make_visuals.py
 ```
 Chronos: `notebooks/chronos_colab.ipynb`. The decision log is in `DECISIONS.md`.
 
-## References [TODO: format to the template style; verify titles]
-- EIA-930 Hourly Electric Grid Monitor, U.S. Energy Information Administration.
-- ERCOT and MISO market data, accessed via the `gridstatus` Python library.
-- NOAA GFS forecasts via the Open-Meteo Previous Runs API.
-- Ansari et al., *Chronos: Learning the Language of Time Series* (2024); Amazon Chronos-2 model card.
-- Forsyth, *Applied Machine Learning* (2019).
-- Market monitor and news sources: see `docs/trends_and_news.md`.
+## References
+All online sources accessed Nov. 26, 2026.
+
+[1] U.S. Energy Information Administration, "Hourly electric grid monitor (Form EIA-930)," API v2, dataset electricity/rto/region-data. [Online]. Available: https://www.eia.gov/electricity/gridmonitor/
+
+[2] Grid Status, *gridstatus: Python library for electricity market data*, ver. 0.37.0. [Software]. Available: https://github.com/gridstatus/gridstatus
+
+[3] Open-Meteo, "Previous Runs API" (NOAA GFS, model `gfs_seamless`). [Online]. Available: https://open-meteo.com/en/docs/previous-runs-api
+
+[4] Electric Reliability Council of Texas (ERCOT), "Winter Storm Fern – January 2026: Post-event report," Jan. 28, 2026. [Online]. Available: https://www.ercot.com/files/docs/2026/01/28/ERCOT-Post-Event-Report-Winter-Storm-Fern.pdf
+
+[5] Midcontinent Independent System Operator (MISO), "Overview of Winter Storm Fern," presented to the Reliability Subcommittee, Feb. 17, 2026. [Online]. Available: https://cdn.misoenergy.org/20260217%20RSC%20Item%2005%20Winter%20Storm%20Fern%20Report741721.pdf
+
+[6] A. Durish Cook, "MISO enters emergency in early Sept. heat, breaks demand record," *RTO Insider*, Sep. 3, 2026. [Online]. Available: https://www.rtoinsider.com/142336-miso-enters-emergency-in-early-sept-heat/
+
+[7] D. Forsyth, *Applied Machine Learning*. Cham, Switzerland: Springer, 2019.
+
+[8] F. Pedregosa *et al.*, "Scikit-learn: Machine learning in Python," *J. Mach. Learn. Res.*, vol. 12, pp. 2825–2830, 2011.
+
+[9] T. Chen and C. Guestrin, "XGBoost: A scalable tree boosting system," in *Proc. 22nd ACM SIGKDD Int. Conf. Knowl. Discov. Data Min. (KDD)*, San Francisco, CA, USA, 2016, pp. 785–794, doi: 10.1145/2939672.2939785.
+
+[10] A. F. Ansari *et al.*, "Chronos: Learning the language of time series," *Trans. Mach. Learn. Res.*, 2024. [Online]. Available: https://arxiv.org/abs/2403.07815
+
+[11] A. F. Ansari *et al.*, "Chronos-2: From univariate to universal forecasting," 2025, *arXiv:2510.15821*.
+
+[12] L. Hotz, "Why were ERCOT battery revenues so low in 2025?," Modo Energy, Feb. 3, 2026. [Online]. Available: https://modoenergy.com/research/why-were-ercot-battery-revenues-so-low-in-2025-weather-energy-arbitrage-builodout
+
+[13] Modo Energy, "ERCOT annual buildout report: Battery capacity reaches 14 GW entering 2026," Feb. 2, 2026. [Online]. Available: https://modoenergy.com/research/en/ercot-battery-buildout-2025-annual-report
+
+[14] C. Rose, "ERCOT's battery storage boom: A strategic opportunity for utilities, IPPs, and developers," Yes Energy, Jun. 20, 2025. [Online]. Available: https://www.yesenergy.com/blog/ercots-battery-storage-boom
+
+[15] J. McDonald, "Independent Market Monitor (IMM) report," Potomac Economics, presented at the ERCOT Board of Directors Meeting, Sep. 22–23, 2025. [Online]. Available: https://www.ercot.com/files/docs/2025/09/15/8.1-Independent-Market-Monitor-IMM-Report.pdf
+
+[16] D. Wamsted and S. Feaster, "Despite record summer demand, solar, storage kept ERCOT prices low," Institute for Energy Economics and Financial Analysis (IEEFA), 2026. [Online]. Available: https://ieefa.org/resources/despite-record-summer-demand-solar-storage-kept-ercot-prices-low
+
+[17] Ascend Analytics, "Can ERCOT's energy supply keep pace with soaring demand appetite?," Jul. 31, 2026. [Online]. Available: https://www.ascendanalytics.com/blog/ercot-market-outlook-scarcity-pricing-load-growth
+
+[18] ERCOT, "ERCOT issues conservation appeal to Texans and businesses," press release, Jul. 13, 2022. [Online]. Available: https://www.ercot.com/news/release/2022-07-13-ercot-issues-conservation
+
+[19] ERCOT, "ERCOT has initiated Energy Emergency Alert Level 2 (EEA 2), conservation is critical," press release, Sep. 6, 2023. [Online]. Available: https://www.ercot.com/news/release/2023-09-06-ercot-has-initiated
+
+[20] A. Bennitt, "ERCOT south wind contributed to EEA2 event," Yes Energy, Nov. 15, 2023. [Online]. Available: https://www.yesenergy.com/blog/ercot-south-wind-contributed-to-eea-2-event
+
+[21] Voltus, "MISO's 2025 PRA: Why high prices are likely here to stay & how you can benefit," May 8, 2025. [Online]. Available: https://www.voltus.co/blog/miso-2025-pra
+
+[22] Enel North America, "MISO's 2025 capacity auction results: Summer prices soar," May 14, 2025. [Online]. Available: https://www.enelnorthamerica.com/insights/blogs/miso-2025-capacity-auction-results
+
+[23] Enverus, "PJM and MISO winter outlook: A mild season with thin margins," Nov. 9, 2026. [Online]. Available: https://www.enverus.com/blog/pjm-and-miso-2026-winter-outlook-thin-margin/
+
+[24] C. Milton, "IMM quarterly report: Spring 2025," Potomac Economics, presented to the MISO Market Subcommittee, Jul. 10, 2025. [Online]. Available: https://www.potomaceconomics.com/wp-content/uploads/2025/06/IMM-Quarterly-Report_Spring-2025-MSC.pdf
+
+[25] C. Milton, "IMM quarterly report: Winter 2026," Potomac Economics, presented to the MISO Markets Committee of the Board of Directors, Mar. 24, 2026. [Online]. Available: https://cdn.misoenergy.org/20260324%20Markets%20Committee%20of%20the%20BOD%20Item%2009%20IMM%20Quarterly%20Report746764.pdf
+
+[26] A. Durish Cook, "MISO enters Max Gen emergency in arctic blast," *RTO Insider*, Jan. 24, 2026. [Online]. Available: https://www.rtoinsider.com/124096-miso-enters-max-gen-emergency-in-arctic-blast/
+
+[27] D. B. Patton, "IMM quarterly report: Summer 2025," Potomac Economics, presented to the MISO Market Subcommittee, Sep. 30, 2025. [Online]. Available: https://www.potomaceconomics.com/wp-content/uploads/2025/11/IMM-Quarterly-Report_Summer-2025-MSC.pdf
