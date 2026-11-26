@@ -272,7 +272,14 @@ Using only information public at 2 PM the day before, a calibrated logistic regr
 The day-ahead market price is the key input, and the hard residual is the surprise spike the market itself did not foresee. ERCOT shows how quickly a market can change: its battery build-out made spikes rare enough that we cannot separate models there.
 
 ## Group contributions
-[TODO: who did what. Data pipeline, modelling, Chronos/Colab, curated windows review, news research, report, video.]
+All four members contributed equally and worked together from start to end. Background research, data collection and cleaning, modelling, evaluation, the report and the video were shared across the team; each member also led the parts listed below.
+
+| Member | Contributions |
+|---|---|
+| Omkar | Shared background research and data cleaning (ERCOT and MISO price, load and weather data). Led the code repository and modelling pipeline, the ERCOT threshold decision (p99 vs p98), the video intro and results segment (Figures 8–9), and final report assembly and submission. |
+| Ayush | Shared background research and data cleaning. First reviewer of the curated test windows; verified when MISO posts day-ahead prices (leakage check); video segment on the data and what is known at 2 PM (Figures 1 and 6). |
+| Avni | Shared background research and data cleaning. Independent second reviewer of the curated test windows; checked every news and market-monitor source and formatted the references in IEEE style; video segment on trends and news (Figures 10–11). |
+| Trupti | Shared background research and data cleaning. Wrote the video script, made the slides by hand and edited the final video; proofread the full report. |
 
 ## Code and reproducibility
 Code: https://github.com/omkarchougule19/gridwatch. To reproduce:
