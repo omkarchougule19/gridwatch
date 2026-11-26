@@ -272,14 +272,15 @@ Using only information public at 2 PM the day before, a calibrated logistic regr
 The day-ahead market price is the key input, and the hard residual is the surprise spike the market itself did not foresee. ERCOT shows how quickly a market can change: its battery build-out made spikes rare enough that we cannot separate models there.
 
 ## Group contributions
-All four members contributed equally and worked together from start to end. Background research, data collection and cleaning, modelling, evaluation, the report and the video were shared across the team; each member also led the parts listed below.
+We split the project evenly between the four of us and met regularly to make the main decisions together. Everyone helped with background reading on electricity markets, cleaning the raw data, writing the report and recording the video.
 
-| Member | Contributions |
-|---|---|
-| Omkar | Shared background research and data cleaning (ERCOT and MISO price, load and weather data). Led the code repository and modelling pipeline, the ERCOT threshold decision (p99 vs p98), the video intro and results segment (Figures 8–9), and final report assembly and submission. |
-| Ayush | Shared background research and data cleaning. First reviewer of the curated test windows; verified when MISO posts day-ahead prices (leakage check); video segment on the data and what is known at 2 PM (Figures 1 and 6). |
-| Avni | Shared background research and data cleaning. Independent second reviewer of the curated test windows; checked every news and market-monitor source and formatted the references in IEEE style; video segment on trends and news (Figures 10–11). |
-| Trupti | Shared background research and data cleaning. Wrote the video script, made the slides by hand and edited the final video; proofread the full report. |
+**Omkar.** Omkar built the data pipeline that pulls hourly load and load forecasts from EIA-930, hub prices through gridstatus, and the archived GFS weather forecasts from Open-Meteo. He also wrote the leak-safe feature code, the time-based splits and the unit tests that check no future information gets in. He set up the GitHub repository and put together the final report for submission.
+
+**Ayush.** Ayush defined the spike labels and counted events at different thresholds, which is how we chose the 99th percentile and studied the ERCOT p99 vs p98 question. He implemented the rule baseline, kNN, logistic regression and Naive Bayes, along with the shared training setup: time-series cross-validation, isotonic calibration and the alert threshold. He also ran Chronos-2 zero-shot and fine-tuned on Colab.
+
+**Avni.** Avni wrote the evaluation code: PR-AUC, event-level recall, false alarms per week and the paired day-block bootstrap we use for significance. She built and reviewed the curated extreme-weather test windows, researched the market trends and news behind the ERCOT and MISO results, and checked and formatted all of our references.
+
+**Trupti.** Trupti implemented the random forest, XGBoost and MLP models and ran the feature ablations. She also ran the scale-free feature experiment that explained why the tree models fail in MISO. She made the figures in the report, wrote the video script and slides, and edited the final video.
 
 ## Code and reproducibility
 Code: https://github.com/omkarchougule19/gridwatch. To reproduce:
