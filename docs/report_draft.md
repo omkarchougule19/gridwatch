@@ -274,13 +274,12 @@ The day-ahead market price is the key input, and the hard residual is the surpri
 ## Group contributions
 We split the project evenly between the four of us and met regularly to make the main decisions together. Everyone helped with background reading on electricity markets, cleaning the raw data, writing the report and recording the video.
 
-**Omkar.** Omkar built the data pipeline that pulls hourly load and load forecasts from EIA-930, hub prices through gridstatus, and the archived GFS weather forecasts from Open-Meteo. He also wrote the leak-safe feature code, the time-based splits and the unit tests that check no future information gets in. He set up the GitHub repository and put together the final report for submission.
-
-**Ayush.** Ayush defined the spike labels and counted events at different thresholds, which is how we chose the 99th percentile and studied the ERCOT p99 vs p98 question. He implemented the rule baseline, kNN, logistic regression and Naive Bayes, along with the shared training setup: time-series cross-validation, isotonic calibration and the alert threshold. He also ran Chronos-2 zero-shot and fine-tuned on Colab.
-
-**Avni.** Avni wrote the evaluation code: PR-AUC, event-level recall, false alarms per week and the paired day-block bootstrap we use for significance. She built and reviewed the curated extreme-weather test windows, researched the market trends and news behind the ERCOT and MISO results, and checked and formatted all of our references.
-
-**Trupti.** Trupti implemented the random forest, XGBoost and MLP models and ran the feature ablations. She also ran the scale-free feature experiment that explained why the tree models fail in MISO. She made the figures in the report, wrote the video script and slides, and edited the final video.
+| Member | Contributions |
+|---|---|
+| Omkar | Omkar built the data pipeline that pulls hourly load and load forecasts from EIA-930, hub prices through gridstatus, and the archived GFS weather forecasts from Open-Meteo. He also wrote the leak-safe feature code, the time-based splits and the unit tests that check no future information gets in. He set up the GitHub repository and put together the final report for submission. |
+| Ayush | Ayush defined the spike labels and counted events at different thresholds, which is how we chose the 99th percentile and studied the ERCOT p99 vs p98 question. He implemented the rule baseline, kNN, logistic regression and Naive Bayes, along with the shared training setup: time-series cross-validation, isotonic calibration and the alert threshold. He also ran Chronos-2 zero-shot and fine-tuned on Colab. |
+| Avni | Avni wrote the evaluation code: PR-AUC, event-level recall, false alarms per week and the paired day-block bootstrap we use for significance. She built and reviewed the curated extreme-weather test windows, researched the market trends and news behind the ERCOT and MISO results, and checked and formatted all of our references. |
+| Trupti | Trupti implemented the random forest, XGBoost and MLP models and ran the feature ablations. She also ran the scale-free feature experiment that explained why the tree models fail in MISO. She made the figures in the report, wrote the video script and slides, and edited the final video. |
 
 ## Code and reproducibility
 Code: https://github.com/omkarchougule19/gridwatch. To reproduce:
